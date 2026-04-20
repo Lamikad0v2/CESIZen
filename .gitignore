@@ -1,0 +1,16 @@
+.claude/
+.vscode/
+.idea/
+
+backend/vendor/
+backend/.phpunit.result.cache
+
+frontend/node_modules/
+frontend/dist/
+frontend/playwright-report/
+frontend/test-results/
+frontend/coverage/
+frontend/.vite/
+
+**/.DS_Store
+**/Thumbs.db

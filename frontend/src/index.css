@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Dark mode via class strategy (Tailwind v4 compat) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ── CESIZen Institutional Palette — Bleu/Vert Canard ──────────
+     Modifier --color-cesizen-500 pour personnaliser la couleur primaire.
+     Les teintes autour sont générées automatiquement depuis cette base.
+     Hex par défaut : Bleu-Vert Canard institutionnel #1b7a8a
+  ────────────────────────────────────────────────────────────── */
+  --color-cesizen-50:  #f0f9fb;
+  --color-cesizen-100: #d8f1f5;
+  --color-cesizen-200: #b0e3eb;
+  --color-cesizen-300: #78cedb;
+  --color-cesizen-400: #3eb4c4;
+  --color-cesizen-500: #1b7a8a;   /* ← Couleur primaire CESIZen */
+  --color-cesizen-600: #156673;
+  --color-cesizen-700: #0f4f5a;
+  --color-cesizen-800: #0a3b44;
+  --color-cesizen-900: #062d34;
+  --color-cesizen-950: #031a1f;
+}
+
+/* ── Variables sémantiques CESIZen ──────────────────────────────
+   Référence ces variables dans les styles inline si nécessaire.
+────────────────────────────────────────────────────────────── */
+:root {
+  --cesizen-primary:       #1b7a8a;
+  --cesizen-primary-hover: #156673;
+  --cesizen-primary-light: #3eb4c4;
+  --cesizen-primary-subtle:#f0f9fb;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: #F5F5F7;
+}
+html.dark {
+  background-color: #09090b;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
