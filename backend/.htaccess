@@ -1,0 +1,10 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Autoriser les fichiers et dossiers physiques à être servis directement
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Tout le reste est redirigé vers index.php (routeur unique)
+RewriteRule ^ index.php [QSA,L]
