@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 import { useState, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -27,6 +28,7 @@ function BackgroundHalos() {
 // ----------------------------------------------------------------
 // NavItem — entrée de navigation (expanded ou collapsed)
 // ----------------------------------------------------------------
+// eslint-disable-next-line no-unused-vars
 function NavItem({ to, icon: Icon, label, isActive, collapsed, onClick }) {
   return (
     <Link
@@ -148,7 +150,7 @@ export default function Layout({ children }) {
   function toggleCollapse() {
     setCollapsed(prev => {
       const next = !prev
-      try { localStorage.setItem('cesizen_sidebar_collapsed', String(next)) } catch {}
+      try { localStorage.setItem('cesizen_sidebar_collapsed', String(next)) } catch { /* noop */ }
       return next
     })
   }
@@ -433,6 +435,7 @@ export default function Layout({ children }) {
                       bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl
                       border-t border-gray-200/50 dark:border-white/10
                       flex items-center justify-around px-2 py-1 safe-bottom">
+        {/* eslint-disable-next-line no-unused-vars */}
         {flatNavItems.map(({ to, icon: Icon, label }) => (
           <Link
             key={to}

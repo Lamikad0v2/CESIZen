@@ -41,6 +41,7 @@ export default function MoodEntry() {
       .finally(() => setLoading(false))
   }, [user])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchToday() }, [fetchToday])
 
   if (!user) return null

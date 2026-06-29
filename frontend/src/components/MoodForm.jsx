@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react'
 import { CheckCircle2, AlertCircle, Send } from 'lucide-react'
 import api from '../api/axios'

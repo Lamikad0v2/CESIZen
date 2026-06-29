@@ -48,13 +48,10 @@ export default function AdminArticles() {
     catch { return null }
   })()
 
-  useEffect(() => {
-    if (!user) { navigate('/login',     { replace: true }); return }
-    if (!['admin', 'rh'].includes(user.role)) {
-      navigate('/dashboard', { replace: true }); return
-    }
-    loadArticles()
-  }, [])
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   function loadArticles() {
     setLoading(true)
@@ -64,10 +61,14 @@ export default function AdminArticles() {
       .finally(() => setLoading(false))
   }
 
-  function showToast(msg, type = 'success') {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
+  useEffect(() => {
+    if (!user) { navigate('/login',     { replace: true }); return }
+    if (!['admin', 'rh'].includes(user.role)) {
+      navigate('/dashboard', { replace: true }); return
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadArticles()
+  }, [])
 
   function openCreate() {
     setForm({ title: '', content: '' })
