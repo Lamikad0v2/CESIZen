@@ -2,6 +2,8 @@
 .vscode/
 .idea/
 
+node_modules/
+
 backend/vendor/
 backend/.phpunit.result.cache
 
