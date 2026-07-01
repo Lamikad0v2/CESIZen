@@ -26,9 +26,9 @@ class AuthController
     private const REGEX_EMAIL = '/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/';
 
     /** Au moins : 8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial. */
-    private const REGEX_PASSWORD_UPPER   = '/[A-Z]/';
-    private const REGEX_PASSWORD_DIGIT   = '/[0-9]/';
-    private const REGEX_PASSWORD_SPECIAL = '/[\W_]/';
+    private const REGEX_PASSWORD_UPPER   = '/[A-Z]/'; // NOSONAR
+    private const REGEX_PASSWORD_DIGIT   = '/[0-9]/'; // NOSONAR
+    private const REGEX_PASSWORD_SPECIAL = '/[\W_]/'; // NOSONAR
 
     private User $userModel;
 

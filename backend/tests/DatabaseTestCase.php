@@ -26,7 +26,7 @@ abstract class DatabaseTestCase extends TestCase
         Database::resetInstance();
 
         // Connexion root sans dbname pour CREATE DATABASE
-        $pdo = new PDO(
+        $pdo = new PDO( // NOSONAR — test DB uses Laragon's default rootless setup
             'mysql:host=localhost;charset=utf8mb4',
             'root',
             '',

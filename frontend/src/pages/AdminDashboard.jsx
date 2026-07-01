@@ -226,7 +226,8 @@ export default function AdminDashboard() {
 
   async function handleMarkAlertRead(alertId) {
     try {
-      await api.put(`/api/admin/alerts/${alertId}/read`)
+      const safeId = Number.parseInt(alertId, 10)
+      await api.put(`/api/admin/alerts/${safeId}/read`)
       fetchAll()
     } catch {
       showToast('error', "Impossible de marquer l'alerte comme lue.")
