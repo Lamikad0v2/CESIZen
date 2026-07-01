@@ -2,6 +2,7 @@ services:
 
   # ── Application (PHP + Apache + React) ────────────────────────────
   app:
+    image: ghcr.io/lamikad0v2/cesizen:latest
     build:
       context: .
       dockerfile: Dockerfile

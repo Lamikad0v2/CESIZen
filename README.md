@@ -64,11 +64,13 @@ Format : `type(scope): message court`
 
 ---
 
-## Pipeline CI (GitHub Actions — runner local)
+## Pipeline CI/CD (GitHub Actions — runner local)
 
-Le pipeline s'exécute sur un **runner auto-hébergé** (self-hosted) à chaque `push` et `pull_request` vers `main`.
+Le pipeline est composé de **deux stages distincts** qui s'enchaînent automatiquement.
 
-### Étapes
+### Stage 1 — CI : Build, Test & SonarCloud
+
+S'exécute à chaque `push` et `pull_request` vers `main`.
 
 ```
 1. Checkout (fetch-depth: 0 pour SonarCloud)
@@ -79,17 +81,66 @@ Le pipeline s'exécute sur un **runner auto-hébergé** (self-hosted) à chaque 
 6. Vitest — tests unitaires + couverture (lcov)
 7. Vite build — build production
 8. SonarCloud Scan — analyse qualité
+9. Docker build + push vers GHCR (push main uniquement)
 ```
 
-### Déclencheurs
+### Stage 2 — CD : Deploy (migration + redémarrage)
+
+S'exécute **uniquement sur `push` vers `main`**, après que le stage CI est passé (`needs: ci`).
+
+```
+1. Pull de la nouvelle image Docker depuis GHCR
+2. Démarrage du conteneur base de données (si arrêté)
+3. Attente du healthcheck MySQL (max 60 s)
+4. Application de la migration V1 (idempotente)
+5. Redémarrage de l'application (sans toucher au volume BDD)
+```
+
+**Condition d'activation :**
 
 ```yaml
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 ```
+
+Le stage CD ne se déclenche **jamais** sur une pull request — uniquement quand un merge vers `main` est effectué.
+
+### Déclencheurs résumés
+
+| Déclencheur | CI | CD |
+|---|---|---|
+| `push` sur `main` | ✅ | ✅ |
+| `pull_request` vers `main` | ✅ | ❌ |
+
+---
+
+## Migrations de base de données
+
+Le fichier [`database/migrations/V1__initial_schema.sql`](database/migrations/V1__initial_schema.sql) est l'artefact de migration produit en TP2 et appliqué automatiquement par le pipeline CD en TP4.
+
+### Garanties d'idempotence
+
+- Chaque table utilise `CREATE TABLE IF NOT EXISTS` — aucune erreur si la table existe déjà.
+- Pas de `DROP`, pas de `TRUNCATE`, pas de `CREATE DATABASE` : les données existantes ne sont jamais détruites.
+- Le script peut être rejoué un nombre illimité de fois sans effet de bord.
+
+### Ordre d'application (safe-deploy)
+
+```
+migration V1 → redémarrage app
+```
+
+La migration est toujours appliquée **avant** le redémarrage de l'application. Cela évite qu'une nouvelle version du code tourne sur un schéma obsolète.
+
+### Déploiement local automatisé
+
+Le script [`deploy.ps1`](deploy.ps1) (PowerShell) reproduit le comportement du pipeline CD en local :
+
+```powershell
+# Depuis la racine du dépôt
+.\deploy.ps1
+```
+
+Pré-requis : Docker Desktop démarré, fichier `.env` présent avec `DB_PASS`.
 
 ---
 
@@ -134,14 +185,14 @@ docker pull ghcr.io/lamikad0v2/cesizen:latest
 
 ---
 
-## Conditions d'exécution du pipeline CI
+## Conditions d'exécution du pipeline CI/CD
 
-| Déclencheur | Étapes exécutées |
-|---|---|
-| `push` sur `main` | Tests PHP + Tests React + Lint + SonarCloud + **Build Docker + Push GHCR** |
-| `pull_request` vers `main` | Tests PHP + Tests React + Lint + SonarCloud + **Build Docker** (sans push) |
+| Déclencheur | Stage CI | Stage CD |
+|---|---|---|
+| `push` sur `main` | Tests + SonarCloud + **Build Docker + Push GHCR** | **Migration + Redémarrage app** |
+| `pull_request` vers `main` | Tests + SonarCloud + **Build Docker** (sans push) | — |
 
-Le pipeline tourne sur un **runner self-hosted** (machine locale). Le push Docker n'a lieu que sur `push` direct vers `main` (merge de PR).
+Le pipeline tourne sur un **runner self-hosted** (machine locale). Le stage CD est conditionnel : il ne s'exécute qu'après un merge effectif vers `main`.
 
 ---
 

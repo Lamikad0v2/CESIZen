@@ -11,6 +11,9 @@ defaults:
     shell: powershell
 
 jobs:
+  # ══════════════════════════════════════════════════════════
+  # JOB 1 — CI : Build · Test · SonarCloud · Docker Push
+  # ══════════════════════════════════════════════════════════
   ci:
     name: Build, Test & SonarCloud
     runs-on: self-hosted
@@ -112,3 +115,21 @@ jobs:
             VITE_API_BASE_URL=
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ══════════════════════════════════════════════════════════
+  # JOB 2 — CD : Deploy (migration + redémarrage)
+  # Déclenché uniquement sur push vers main, après CI vert.
+  # ══════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy to local environment
+    runs-on: self-hosted
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Deploy — migration + restart
+        run: |
+          & "$env:GITHUB_WORKSPACE\deploy.ps1"
