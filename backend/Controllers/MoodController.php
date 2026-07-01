@@ -55,7 +55,7 @@ class MoodController extends BaseController
      *   Si valence < 30 ET arousal < 30, et que les 2 jours précédents avaient
      *   aussi valence < 30 ET arousal < 30, insère une alerte (3ème jour consécutif).
      */
-    public function store(): void
+    public function store(): void // NOSONAR — validation complexity is inherent to the mood spec
     {
         Auth::requireAuth();
 

@@ -40,7 +40,7 @@ abstract class DatabaseTestCase extends TestCase
         // Recréation propre des tables pour garantir l'alignement avec le schéma courant.
         // DROP + CREATE assure que toute migration de colonnes est appliquée.
         foreach (['alerts', 'moods', 'articles', 'users', 'teams'] as $t) {
-            $pdo->exec("DROP TABLE IF EXISTS `{$t}`");
+            $pdo->exec("DROP TABLE IF EXISTS `{$t}`"); // NOSONAR — table names are from a hardcoded fixture array
         }
 
         // Création des tables (miroir du schéma de production)

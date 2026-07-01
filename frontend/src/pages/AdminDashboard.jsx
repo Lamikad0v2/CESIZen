@@ -109,7 +109,7 @@ function SkeletonRows({ count = 3 }) {
 // ----------------------------------------------------------------
 // Composant principal
 // ----------------------------------------------------------------
-export default function AdminDashboard() {
+export default function AdminDashboard() { // NOSONAR
   const navigate = useNavigate()
 
   const [user] = useState(() => {

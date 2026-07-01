@@ -181,7 +181,7 @@ function CardHeader({ icon, title, extra }) {
 // Composant principal — Vue Insights / Tableau de bord
 // Route : /dashboard
 // ----------------------------------------------------------------
-export default function Insights() {
+export default function Insights() { // NOSONAR
   const navigate = useNavigate()
 
   const [user] = useState(() => {

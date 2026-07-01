@@ -21,6 +21,7 @@ require_once __DIR__ . '/../Models/Article.php';
  */
 class ArticleController extends BaseController
 {
+    private const MSG_NOT_FOUND = self::MSG_NOT_FOUND;
     private Article $model;
 
     /**
@@ -69,7 +70,7 @@ class ArticleController extends BaseController
         $article = $this->model->findById($id);
 
         if ($article === null) {
-            $this->respond(404, 'error', null, 'Article not found.');
+            $this->respond(404, 'error', null, self::MSG_NOT_FOUND);
         }
 
         $this->respond(200, 'success', $article, 'Article fetched successfully.');
@@ -139,7 +140,7 @@ class ArticleController extends BaseController
         }
 
         if ($this->model->findById($id) === null) {
-            $this->respond(404, 'error', null, 'Article not found.');
+            $this->respond(404, 'error', null, self::MSG_NOT_FOUND);
         }
 
         $updated = $this->model->update($id, $title, $content);
@@ -164,7 +165,7 @@ class ArticleController extends BaseController
         Auth::requireRole('admin', 'rh');
 
         if ($this->model->findById($id) === null) {
-            $this->respond(404, 'error', null, 'Article not found.');
+            $this->respond(404, 'error', null, self::MSG_NOT_FOUND);
         }
 
         $deleted = $this->model->deleteById($id);

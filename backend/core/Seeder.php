@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Database.php';
 
-const PLAIN_PASSWORD = 'Cesizen1!';
+const PLAIN_PASSWORD = 'Cesizen1!'; // NOSONAR — seeder fixture, not a production credential
 const MOOD_DAYS = 30;
 
 $TEAMS = ['Developpement', 'Marketing', 'Support Client'];
