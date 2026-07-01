@@ -26,10 +26,10 @@ abstract class DatabaseTestCase extends TestCase
         Database::resetInstance();
 
         // Connexion root sans dbname pour CREATE DATABASE
-        $pdo = new PDO( // NOSONAR — test DB uses Laragon's default rootless setup
+        $pdo = new PDO(
             'mysql:host=localhost;charset=utf8mb4',
             'root',
-            '',
+            '', // NOSONAR — Laragon test DB has no password by default
             [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
         );
         $pdo->exec('CREATE DATABASE IF NOT EXISTS cesizen_test
