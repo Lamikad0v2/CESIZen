@@ -29,14 +29,15 @@ jobs:
           $bin    = "C:\Users\Jordan\.runner-tools"
           New-Item -ItemType Directory -Force -Path $bin | Out-Null
 
+          # Toujours régénérer le .bat (peut changer entre runs)
           if (-not (Test-Path "$bin\composer.phar")) {
             & "$phpDir\php.exe" -r "copy('https://getcomposer.org/installer','cs.php');"
             & "$phpDir\php.exe" cs.php --install-dir="$bin" --filename=composer.phar
             Remove-Item -Force cs.php
           }
 
-          # Wrapper .bat pour que 'composer' soit appelable par cmd
-          $bat = "@echo off`r`n`"$phpDir\php.exe`" `"$bin\composer.phar`" %*"
+          # Wrapper .bat avec zip activé
+          $bat = "@echo off`r`n`"$phpDir\php.exe`" -d extension=`"$phpDir\ext\php_zip.dll`" `"$bin\composer.phar`" %*"
           Set-Content -Path "$bin\composer.bat" -Value $bat -Encoding ASCII
 
           Add-Content -Path $env:GITHUB_PATH -Value $phpDir
