@@ -42,7 +42,8 @@ jobs:
 
       - name: Run PHPUnit tests
         working-directory: backend
-        run: php vendor/phpunit/phpunit/phpunit
+        shell: cmd
+        run: vendor\bin\phpunit.bat
 
       # ── 4. Frontend React ──────────────────────────────────────────
       - name: Set up Node.js
