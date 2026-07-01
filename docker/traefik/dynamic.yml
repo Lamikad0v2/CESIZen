@@ -1,6 +1,5 @@
-# dynamic.yml — Configuration dynamique Traefik
-# Slot actif initial : blue
-# Géré par deploy-blue-green.ps1 — ne pas modifier manuellement.
+﻿# dynamic.yml -- gere par deploy-blue-green.ps1
+# Slot actif : blue
 
 http:
   routers:
@@ -15,3 +14,4 @@ http:
       loadBalancer:
         servers:
           - url: "http://app-blue:8080"
+

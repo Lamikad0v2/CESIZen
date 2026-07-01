@@ -98,8 +98,14 @@ function Write-TraefikConfig {
 
     Set-Content -Path $ConfPath -Value $yaml -Encoding UTF8
     Write-Host ("  dynamic.yml -> slot " + $Slot) -ForegroundColor Green
-    Write-Host "  Traefik recharge automatiquement (watch: true)..." -ForegroundColor Green
-    Start-Sleep -Seconds 2
+
+    # Sur Windows Docker Desktop, inotify ne propage pas les changements
+    # de fichiers NTFS vers les conteneurs Linux. On force le rechargement
+    # en redemarrant Traefik (demarrage < 1s, coupure negligeable).
+    Write-Host "  Redemarrage Traefik pour prise en compte du nouveau slot..." -ForegroundColor Green
+    docker restart cesizen-proxy | Out-Null
+    Start-Sleep -Seconds 3
+    Write-Host "  Traefik actif sur le slot : $Slot" -ForegroundColor Green
 }
 
 # ── Verifier qu'un conteneur tourne ──────────────────────────────
