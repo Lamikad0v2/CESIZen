@@ -2,7 +2,9 @@
 declare(strict_types=1);
 
 // --- CORS ---
-$allowedOrigin = 'http://localhost:5173';
+// En local : http://localhost:5173 (Vite dev server)
+// En Docker : même origine, ou valeur de CORS_ORIGIN
+$allowedOrigin = $_ENV['CORS_ORIGIN'] ?? getenv('CORS_ORIGIN') ?: 'http://localhost:5173';
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 if ($origin === $allowedOrigin) {
