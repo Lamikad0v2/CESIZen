@@ -1,26 +1,8 @@
 services:
 
-  # ── Application (PHP + Apache + React) ────────────────────────────
-  app:
-    image: ghcr.io/lamikad0v2/cesizen:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      DB_HOST: db
-      DB_USER: cesizen
-      DB_PASS: ${DB_PASS}
-      CESIZEN_DB_NAME: cesizen
-      CORS_ORIGIN: http://localhost:8080
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── Base de données MySQL ──────────────────────────────────────────
+  # ── Base de données (partagée par les deux slots) ─────────────────
   db:
+    container_name: cesizen-db
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -36,7 +18,63 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - cesizen-net
     restart: unless-stopped
+
+  # ── Slot Blue ─────────────────────────────────────────────────────
+  app-blue:
+    container_name: cesizen-app-blue
+    image: ghcr.io/lamikad0v2/cesizen:${BLUE_TAG:-latest}
+    environment:
+      DB_HOST: db
+      DB_USER: cesizen
+      DB_PASS: ${DB_PASS}
+      CESIZEN_DB_NAME: cesizen
+      CORS_ORIGIN: http://localhost
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cesizen-net
+    restart: unless-stopped
+
+  # ── Slot Green ────────────────────────────────────────────────────
+  app-green:
+    container_name: cesizen-app-green
+    image: ghcr.io/lamikad0v2/cesizen:${GREEN_TAG:-latest}
+    environment:
+      DB_HOST: db
+      DB_USER: cesizen
+      DB_PASS: ${DB_PASS}
+      CESIZEN_DB_NAME: cesizen
+      CORS_ORIGIN: http://localhost
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - cesizen-net
+    restart: unless-stopped
+
+  # ── Reverse Proxy Nginx ───────────────────────────────────────────
+  proxy:
+    container_name: cesizen-proxy
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/upstream.conf:/etc/nginx/conf.d/upstream.conf:ro
+    depends_on:
+      - app-blue
+      - app-green
+    networks:
+      - cesizen-net
+    restart: unless-stopped
+
+networks:
+  cesizen-net:
+    name: cesizen-net
 
 volumes:
   db_data:

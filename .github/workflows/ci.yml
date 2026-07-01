@@ -117,11 +117,12 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ══════════════════════════════════════════════════════════
-  # JOB 2 — CD : Deploy (migration + redémarrage)
+  # JOB 2 — CD : Blue/Green Deploy
   # Déclenché uniquement sur push vers main, après CI vert.
+  # Déploie sur le slot inactif, bascule Nginx sans coupure.
   # ══════════════════════════════════════════════════════════
   deploy:
-    name: Deploy to local environment
+    name: Blue/Green Deploy
     runs-on: self-hosted
     needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -130,6 +131,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-      - name: Deploy — migration + restart
+      - name: Blue/Green deploy — migration + slot switch
+        env:
+          DEPLOY_TAG: ${{ github.sha }}
         run: |
-          & "$env:GITHUB_WORKSPACE\deploy.ps1"
+          & "$env:GITHUB_WORKSPACE\deploy-blue-green.ps1" -ImageTag "$env:DEPLOY_TAG"

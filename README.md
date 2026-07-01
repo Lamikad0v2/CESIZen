@@ -113,6 +113,103 @@ Le stage CD ne se déclenche **jamais** sur une pull request — uniquement quan
 
 ---
 
+## Déploiement Blue/Green (TP5)
+
+### Architecture
+
+```
+                          ┌─────────────────────┐
+Navigateur ──── :80 ────▶│   Nginx reverse      │
+                          │   proxy              │
+                          │   (cesizen-proxy)    │
+                          └──────────┬──────────┘
+                                     │ upstream = cesizen_active
+                         ┌───────────┴───────────┐
+                         │                       │
+                ┌────────▼────────┐   ┌──────────▼───────┐
+                │   app-blue      │   │   app-green       │
+                │   :8080         │   │   :8080           │
+                │ (old version)   │   │ (new version) ◀── │ trafic actif
+                └────────┬────────┘   └──────────┬────────┘
+                         │                       │
+                         └──────────┬────────────┘
+                                    │
+                          ┌─────────▼──────────┐
+                          │   MySQL (cesizen-db)│
+                          │   (partagée)        │
+                          └────────────────────┘
+```
+
+### Fonctionnement
+
+| Concept | Détail |
+|---|---|
+| **Deux slots** | `app-blue` et `app-green` tournent en parallèle sur le réseau `cesizen-net` |
+| **Un seul reçoit le trafic** | Nginx route via `upstream cesizen_active` vers le slot actif |
+| **Bascule** | Nginx recharge gracieusement (`nginx -s reload`) — requêtes en cours non interrompues |
+| **Rollback** | Le slot précédent reste actif → rollback en < 5 secondes |
+| **Diagnostic** | Header `X-Active-Slot: blue|green` dans chaque réponse HTTP |
+
+### Commandes de bascule
+
+```powershell
+# Déployer une nouvelle version (détermine automatiquement le slot inactif)
+.\deploy-blue-green.ps1
+
+# Rollback immédiat vers le slot précédent (sans migration ni pull)
+.\deploy-blue-green.ps1 -Rollback
+
+# Vérifier le slot actif
+curl -I http://localhost | findstr X-Active-Slot
+```
+
+### Cycle de déploiement
+
+```
+push main → CI (tests + build + push :sha vers GHCR)
+          → CD (deploy-blue-green.ps1)
+               ├─ [1] Pull image :sha sur slot inactif
+               ├─ [2] Démarrer la DB
+               ├─ [3] Attendre healthcheck MySQL
+               ├─ [4] Appliquer migration expand
+               ├─ [5] Démarrer le slot inactif
+               └─ [6] nginx -s reload → trafic basculé
+```
+
+### Stratégie de mise à jour de la base (Expand / Contract)
+
+Les deux slots partagent la **même base de données**. Une migration destructive casserait
+l'ancien slot (rollback impossible) ou entraînerait une perte de données.
+
+**Pattern Expand / Contract** :
+
+```
+Déploiement N+1 (expand uniquement)
+  ├─ ✅ CREATE TABLE IF NOT EXISTS  → ignorée par old-blue
+  ├─ ✅ ALTER TABLE ADD COLUMN … DEFAULT  → ignorée par old-blue
+  ├─ ❌ ALTER TABLE DROP COLUMN    → casse old-blue (interdite en expand)
+  └─ ❌ ALTER TABLE RENAME COLUMN  → casse old-blue (interdite en expand)
+
+Bascule → trafic vers new-green
+
+Déploiement N+2 (contract, si old-blue est arrêté)
+  └─ ALTER TABLE DROP COLUMN ancienne_colonne  → maintenant sûr
+```
+
+**Chronologie** :
+
+```
+migration EXPAND → start new-slot → switch Nginx → (stabilisation) → migration CONTRACT
+                ↑ avant bascule                                      ↑ déploiement suivant
+```
+
+**Lors d'un rollback** : les nouvelles colonnes existent mais old-blue les ignore.
+Aucune perte de données car la phase CONTRACT n'a pas encore eu lieu.
+
+> Voir [PLAN.md](PLAN.md) pour la logique complète de déploiement.
+
+---
+
 ## Migrations de base de données
 
 Le fichier [`database/migrations/V1__initial_schema.sql`](database/migrations/V1__initial_schema.sql) est l'artefact de migration produit en TP2 et appliqué automatiquement par le pipeline CD en TP4.
@@ -187,12 +284,12 @@ docker pull ghcr.io/lamikad0v2/cesizen:latest
 
 ## Conditions d'exécution du pipeline CI/CD
 
-| Déclencheur | Stage CI | Stage CD |
+| Déclencheur | Stage CI | Stage CD (Blue/Green) |
 |---|---|---|
-| `push` sur `main` | Tests + SonarCloud + **Build Docker + Push GHCR** | **Migration + Redémarrage app** |
+| `push` sur `main` | Tests + SonarCloud + **Build Docker + Push GHCR** | **Migration expand + Bascule slot** |
 | `pull_request` vers `main` | Tests + SonarCloud + **Build Docker** (sans push) | — |
 
-Le pipeline tourne sur un **runner self-hosted** (machine locale). Le stage CD est conditionnel : il ne s'exécute qu'après un merge effectif vers `main`.
+Le pipeline tourne sur un **runner self-hosted** (machine locale). Le stage CD déploie sur le slot inactif et bascule Nginx sans interruption de service.
 
 ---
 
