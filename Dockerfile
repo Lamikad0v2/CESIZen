@@ -13,7 +13,7 @@ ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN npm run build
 
 # ── Stage 2 : PHP 8.1 + Apache ────────────────────────────────────
-FROM php:8.1-apache # nosonar
+FROM php:8.1-apache
 
 # Extensions PHP requises (pdo_mysql est bundlé dans l'image officielle)
 RUN docker-php-ext-install pdo pdo_mysql \
