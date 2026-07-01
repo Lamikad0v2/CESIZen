@@ -1,0 +1,18 @@
+# traefik.yml — Configuration statique Traefik (TP5)
+# Dashboard : http://localhost:8080/dashboard/
+
+api:
+  dashboard: true
+  insecure: true   # pas d'auth en local (ne pas exposer en prod)
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true    # rechargement automatique quand dynamic.yml change
+
+log:
+  level: INFO

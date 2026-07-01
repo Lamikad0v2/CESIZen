@@ -56,15 +56,16 @@ services:
       - cesizen-net
     restart: unless-stopped
 
-  # ── Reverse Proxy Nginx ───────────────────────────────────────────
+  # ── Reverse Proxy Traefik ─────────────────────────────────────────
   proxy:
     container_name: cesizen-proxy
-    image: nginx:1.27-alpine
+    image: traefik:v3.3
     ports:
-      - "80:80"
+      - "80:80"      # trafic applicatif
+      - "8080:8080"  # dashboard Traefik → http://localhost:8080/dashboard/
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/upstream.conf:/etc/nginx/conf.d/upstream.conf:ro
+      - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml
     depends_on:
       - app-blue
       - app-green

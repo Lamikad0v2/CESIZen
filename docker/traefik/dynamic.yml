@@ -1,0 +1,17 @@
+# dynamic.yml — Configuration dynamique Traefik
+# Slot actif initial : blue
+# Géré par deploy-blue-green.ps1 — ne pas modifier manuellement.
+
+http:
+  routers:
+    cesizen:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/`)"
+      service: cesizen-active
+
+  services:
+    cesizen-active:
+      loadBalancer:
+        servers:
+          - url: "http://app-blue:8080"

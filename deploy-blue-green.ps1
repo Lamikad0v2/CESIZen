@@ -8,22 +8,27 @@
 #   - Lit le slot actif dans C:\cesizen-state\active_slot.txt
 #   - Déploie la nouvelle image sur le slot INACTIF
 #   - Applique la migration expand (idempotente, rétro-compatible)
-#   - Bascule Nginx par rechargement gracieux (nginx -s reload)
+#   - Bascule Traefik via dynamic.yml (rechargement automatique)
 #   - Met à jour le fichier d'état
 # =============================================================
 
 param(
-    [string]$ImageTag = ($env:DEPLOY_TAG ?? "latest"),
+    [string]$ImageTag = "",
     [switch]$Rollback
 )
 
 $ErrorActionPreference = "Stop"
 
+# Compatibilité PowerShell 5.1 — pas de ?? ni de &&
+if (-not $ImageTag) {
+    if ($env:DEPLOY_TAG) { $ImageTag = $env:DEPLOY_TAG } else { $ImageTag = "latest" }
+}
+
 # ── Chemins ─────────────────────────────────────────────────────
 $ProjectDir    = "C:\laragon\www\emotionalTracker"
 $StateDir      = "C:\cesizen-state"
 $StateFile     = Join-Path $StateDir "active_slot.txt"
-$UpstreamConf  = Join-Path $ProjectDir "docker\nginx\upstream.conf"
+$DynamicConf   = Join-Path $ProjectDir "docker\traefik\dynamic.yml"
 $MigrationFile = Join-Path $ProjectDir "database\migrations\V1__initial_schema.sql"
 
 Set-Location $ProjectDir
@@ -50,66 +55,61 @@ New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
 if (-not (Test-Path $StateFile)) { Set-Content $StateFile "blue" }
 
 $currentSlot = (Get-Content $StateFile).Trim()
-$newSlot     = if ($currentSlot -eq "blue") { "green" } else { "blue" }
+if ($currentSlot -eq "blue") { $newSlot = "green" } else { $newSlot = "blue" }
 
-# ── Fonction : écrire upstream.conf + recharger Nginx ────────────
-function Switch-NginxToSlot {
+# ── Fonction : écrire dynamic.yml → Traefik recharge tout seul ───
+function Switch-TraefikToSlot {
     param([string]$Slot)
 
+    # Remarque : dans un here-string PS, `` (double backtick) = backtick littéral
+    # Le backtick est requis par la syntaxe de règle Traefik : PathPrefix(`/`)
     $content = @"
-# upstream.conf — géré par deploy-blue-green.ps1
-# Slot actif : $Slot — ne pas modifier manuellement.
+# dynamic.yml -- géré par deploy-blue-green.ps1
+# Slot actif : $Slot
 
-upstream cesizen_active {
-    server app-${Slot}:8080;
-}
+http:
+  routers:
+    cesizen:
+      entryPoints:
+        - web
+      rule: "PathPrefix(``/``)"
+      service: cesizen-active
 
-server {
-    listen 80;
-    server_name localhost;
-
-    add_header X-Active-Slot "$Slot" always;
-
-    location / {
-        proxy_pass            http://cesizen_active;
-        proxy_http_version    1.1;
-        proxy_set_header      Host              `$host;
-        proxy_set_header      X-Real-IP         `$remote_addr;
-        proxy_set_header      X-Forwarded-For   `$proxy_add_x_forwarded_for;
-        proxy_set_header      X-Forwarded-Proto `$scheme;
-        proxy_read_timeout    60s;
-        proxy_connect_timeout 10s;
-    }
-}
+  services:
+    cesizen-active:
+      loadBalancer:
+        servers:
+          - url: "http://app-${Slot}:8080"
 "@
-    Set-Content -Path $UpstreamConf -Value $content -Encoding UTF8
-
-    docker exec cesizen-proxy nginx -s reload
-    if ($LASTEXITCODE -ne 0) { Write-Error "nginx -s reload a échoué"; exit 1 }
+    Set-Content -Path $DynamicConf -Value $content -Encoding UTF8
+    Write-Host "  dynamic.yml mis a jour (slot: $Slot)" -ForegroundColor Green
+    Write-Host "  Traefik recharge automatiquement la configuration..." -ForegroundColor Green
+    Start-Sleep -Seconds 2
 }
 
 # ══════════════════════════════════════════════════════════════
-# MODE ROLLBACK — bascule nginx sans redéployer ni migrer
+# MODE ROLLBACK — bascule Traefik sans redéployer ni migrer
 # ══════════════════════════════════════════════════════════════
 if ($Rollback) {
     Write-Host ""
     Write-Host "=====================================================" -ForegroundColor Red
-    Write-Host " ROLLBACK : $currentSlot → $newSlot"                   -ForegroundColor Red
-    Write-Host " (rechargement Nginx uniquement, aucune migration)"     -ForegroundColor Red
+    Write-Host " ROLLBACK : $currentSlot -> $newSlot"                  -ForegroundColor Red
+    Write-Host " (mise a jour dynamic.yml uniquement, pas de migration)" -ForegroundColor Red
     Write-Host "=====================================================" -ForegroundColor Red
 
-    $state = docker inspect --format='{{.State.Running}}' "cesizen-app-$newSlot" 2>$null
+    $state = docker inspect --format="{{.State.Running}}" "cesizen-app-$newSlot" 2>$null
     if ($state -ne "true") {
-        Write-Error "Slot $newSlot non démarré — impossible de rollback sans conteneur actif."
+        Write-Error "Slot $newSlot non demarre — rollback impossible sans conteneur actif."
         exit 1
     }
 
-    Switch-NginxToSlot -Slot $newSlot
+    Switch-TraefikToSlot -Slot $newSlot
     Set-Content $StateFile $newSlot
 
     Write-Host ""
-    Write-Host " Rollback vers $newSlot effectué." -ForegroundColor Green
-    Write-Host " Application : http://localhost"   -ForegroundColor Green
+    Write-Host " Rollback vers $newSlot effectue."  -ForegroundColor Green
+    Write-Host " Application    : http://localhost"  -ForegroundColor Green
+    Write-Host " Dashboard      : http://localhost:8080/dashboard/" -ForegroundColor Green
     exit 0
 }
 
@@ -118,82 +118,84 @@ if ($Rollback) {
 # ══════════════════════════════════════════════════════════════
 Write-Host ""
 Write-Host "=====================================================" -ForegroundColor Cyan
-Write-Host " Blue/Green Deploy : $currentSlot → $newSlot"          -ForegroundColor Cyan
+Write-Host " Blue/Green Deploy : $currentSlot -> $newSlot"         -ForegroundColor Cyan
 Write-Host " Image tag : $ImageTag"                                 -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 
 # ── [1/6] Pull de l'image sur le nouveau slot ────────────────────
 Write-Host ""
 Write-Host "=== [1/6] Pull de l'image pour app-$newSlot ===" -ForegroundColor Yellow
-$env:BLUE_TAG  = if ($newSlot -eq "blue")  { $ImageTag } else { "latest" }
-$env:GREEN_TAG = if ($newSlot -eq "green") { $ImageTag } else { "latest" }
+
+if ($newSlot -eq "blue") { $env:BLUE_TAG = $ImageTag; $env:GREEN_TAG = "latest" }
+else                      { $env:GREEN_TAG = $ImageTag; $env:BLUE_TAG = "latest" }
 
 docker compose pull "app-$newSlot"
-if ($LASTEXITCODE -ne 0) { Write-Error "docker compose pull a échoué"; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Error "docker compose pull a echoue"; exit 1 }
 
 # ── [2/6] S'assurer que la DB est active ─────────────────────────
 Write-Host ""
-Write-Host "=== [2/6] Démarrage de la base de données ===" -ForegroundColor Yellow
+Write-Host "=== [2/6] Demarrage de la base de donnees ===" -ForegroundColor Yellow
 docker compose up -d db
-if ($LASTEXITCODE -ne 0) { Write-Error "Impossible de démarrer db"; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Error "Impossible de demarrer db"; exit 1 }
 
 # ── [3/6] Attente du healthcheck MySQL ───────────────────────────
 Write-Host ""
 Write-Host "=== [3/6] Attente du healthcheck MySQL ===" -ForegroundColor Yellow
 $maxWait = 60; $waited = 0; $dbId = ""
 while ($waited -lt $maxWait) {
-    $dbId   = docker compose ps -q db 2>$null
+    $dbId = docker compose ps -q db 2>$null
     if ($dbId) {
-        $health = docker inspect --format='{{.State.Health.Status}}' $dbId 2>$null
+        $health = docker inspect --format="{{.State.Health.Status}}" $dbId 2>$null
         if ($health -eq "healthy") {
-            Write-Host "  Base de données prête (${waited}s)." -ForegroundColor Green
+            Write-Host "  Base de donnees prete (${waited}s)." -ForegroundColor Green
             break
         }
     }
     Write-Host "  Attente... ${waited}s / ${maxWait}s"
-    Start-Sleep -Seconds 2; $waited += 2
+    Start-Sleep -Seconds 2
+    $waited += 2
 }
-if ($waited -ge $maxWait) { Write-Error "Timeout : MySQL non disponible après ${maxWait}s"; exit 1 }
+if ($waited -ge $maxWait) { Write-Error "Timeout : MySQL non disponible apres ${maxWait}s"; exit 1 }
 
 # ── [4/6] Migration expand (idempotente, rétro-compatible) ───────
 Write-Host ""
-Write-Host "=== [4/6] Migration expand (idempotente) ===" -ForegroundColor Yellow
+Write-Host "=== [4/6] Migration expand ===" -ForegroundColor Yellow
 Write-Host "  Fichier : $MigrationFile"
 Get-Content $MigrationFile | docker exec -i $dbId mysql -u cesizen -p"$DB_PASS" cesizen
-if ($LASTEXITCODE -ne 0) { Write-Error "La migration a échoué"; exit 1 }
-Write-Host "  Migration appliquée." -ForegroundColor Green
+if ($LASTEXITCODE -ne 0) { Write-Error "La migration a echoue"; exit 1 }
+Write-Host "  Migration OK." -ForegroundColor Green
 
 # ── [5/6] Démarrer le nouveau slot ───────────────────────────────
 Write-Host ""
-Write-Host "=== [5/6] Démarrage du slot app-$newSlot ===" -ForegroundColor Yellow
+Write-Host "=== [5/6] Demarrage du slot app-$newSlot ===" -ForegroundColor Yellow
 docker compose up -d --no-deps "app-$newSlot"
-if ($LASTEXITCODE -ne 0) { Write-Error "Démarrage de app-$newSlot échoué"; exit 1 }
+if ($LASTEXITCODE -ne 0) { Write-Error "Demarrage de app-$newSlot echoue"; exit 1 }
 
 $maxWait = 30; $waited = 0
 while ($waited -lt $maxWait) {
-    $state = docker inspect --format='{{.State.Running}}' "cesizen-app-$newSlot" 2>$null
+    $state = docker inspect --format="{{.State.Running}}" "cesizen-app-$newSlot" 2>$null
     if ($state -eq "true") {
-        Write-Host "  Slot app-$newSlot en cours d'exécution (${waited}s)." -ForegroundColor Green
+        Write-Host "  Slot app-$newSlot demarre (${waited}s)." -ForegroundColor Green
         break
     }
-    Start-Sleep -Seconds 2; $waited += 2
+    Start-Sleep -Seconds 2
+    $waited += 2
 }
-if ($waited -ge $maxWait) { Write-Error "app-$newSlot n'a pas démarré après ${maxWait}s"; exit 1 }
+if ($waited -ge $maxWait) { Write-Error "app-$newSlot n'a pas demarre apres ${maxWait}s"; exit 1 }
 
-# ── [6/6] Bascule Nginx (rechargement gracieux, zéro coupure) ────
+# ── [6/6] Bascule Traefik (rechargement automatique dynamic.yml) ─
 Write-Host ""
-Write-Host "=== [6/6] Bascule Nginx : $currentSlot → $newSlot ===" -ForegroundColor Yellow
-Switch-NginxToSlot -Slot $newSlot
+Write-Host "=== [6/6] Bascule Traefik : $currentSlot -> $newSlot ===" -ForegroundColor Yellow
+Switch-TraefikToSlot -Slot $newSlot
 Set-Content $StateFile $newSlot
-Write-Host "  Nginx rechargé — trafic basculé vers $newSlot." -ForegroundColor Green
 
 Write-Host ""
 Write-Host "=====================================================" -ForegroundColor Green
-Write-Host " Déploiement blue/green terminé avec succès !"        -ForegroundColor Green
-Write-Host " Slot précédent : $currentSlot (disponible pour rollback)" -ForegroundColor Green
+Write-Host " Deploiement blue/green termine avec succes !"        -ForegroundColor Green
+Write-Host " Slot precedent : $currentSlot (disponible pour rollback)" -ForegroundColor Green
 Write-Host " Slot actif     : $newSlot"                           -ForegroundColor Green
 Write-Host " Application    : http://localhost"                    -ForegroundColor Green
-Write-Host " Diagnostic     : curl -I http://localhost | grep X-Active-Slot" -ForegroundColor Green
+Write-Host " Dashboard      : http://localhost:8080/dashboard/"   -ForegroundColor Green
 Write-Host "=====================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host " Rollback : .\deploy-blue-green.ps1 -Rollback"        -ForegroundColor DarkYellow

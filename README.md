@@ -118,26 +118,27 @@ Le stage CD ne se déclenche **jamais** sur une pull request — uniquement quan
 ### Architecture
 
 ```
-                          ┌─────────────────────┐
-Navigateur ──── :80 ────▶│   Nginx reverse      │
-                          │   proxy              │
-                          │   (cesizen-proxy)    │
-                          └──────────┬──────────┘
-                                     │ upstream = cesizen_active
-                         ┌───────────┴───────────┐
-                         │                       │
-                ┌────────▼────────┐   ┌──────────▼───────┐
-                │   app-blue      │   │   app-green       │
-                │   :8080         │   │   :8080           │
-                │ (old version)   │   │ (new version) ◀── │ trafic actif
-                └────────┬────────┘   └──────────┬────────┘
-                         │                       │
-                         └──────────┬────────────┘
-                                    │
-                          ┌─────────▼──────────┐
-                          │   MySQL (cesizen-db)│
-                          │   (partagée)        │
-                          └────────────────────┘
+                          ┌───────────────────────────┐
+Navigateur ──── :80 ────▶│   Traefik reverse proxy    │
+                          │   (cesizen-proxy)          │
+                          │                            │
+                          │   Dashboard :8080/dashboard│◀── navigateur
+                          └────────────┬──────────────┘
+                                       │ dynamic.yml → cesizen-active
+                          ┌────────────┴────────────┐
+                          │                         │
+                 ┌────────▼────────┐   ┌────────────▼───────┐
+                 │   app-blue      │   │   app-green         │
+                 │   :8080         │   │   :8080             │
+                 │ (version N-1)   │   │ (version N) ◀── actif
+                 └────────┬────────┘   └──────────┬─────────┘
+                          │                       │
+                          └──────────┬────────────┘
+                                     │
+                           ┌─────────▼──────────┐
+                           │  MySQL (cesizen-db) │
+                           │  (partagée)         │
+                           └────────────────────┘
 ```
 
 ### Fonctionnement
@@ -145,35 +146,54 @@ Navigateur ──── :80 ────▶│   Nginx reverse      │
 | Concept | Détail |
 |---|---|
 | **Deux slots** | `app-blue` et `app-green` tournent en parallèle sur le réseau `cesizen-net` |
-| **Un seul reçoit le trafic** | Nginx route via `upstream cesizen_active` vers le slot actif |
-| **Bascule** | Nginx recharge gracieusement (`nginx -s reload`) — requêtes en cours non interrompues |
-| **Rollback** | Le slot précédent reste actif → rollback en < 5 secondes |
-| **Diagnostic** | Header `X-Active-Slot: blue|green` dans chaque réponse HTTP |
+| **Un seul reçoit le trafic** | Traefik lit `docker/traefik/dynamic.yml` et route vers le slot actif |
+| **Bascule** | Le script réécrit `dynamic.yml` — Traefik recharge **automatiquement** (`watch: true`) |
+| **Rollback** | Le slot précédent reste démarré → rollback en ~2 secondes |
+| **Dashboard** | `http://localhost:8080/dashboard/` — état en temps réel |
 
-### Commandes de bascule
+### Dashboard Traefik
+
+Traefik expose un dashboard à `http://localhost:8080/dashboard/` permettant de voir :
+- **Routers** : quelle règle route vers quel service
+- **Services** : `cesizen-active` → `app-blue:8080` ou `app-green:8080`
+- **Health** : état des serveurs upstream
+
+Après une bascule, le dashboard se met à jour automatiquement en < 2 secondes.
+
+### Commandes — démarrage et test
 
 ```powershell
-# Déployer une nouvelle version (détermine automatiquement le slot inactif)
+# 1. Démarrage complet (première installation)
+docker compose up -d
+
+# 2. Vérifier le slot actif
+#    → http://localhost:8080/dashboard/  (Services > cesizen-active)
+Get-Content C:\cesizen-state\active_slot.txt
+
+# 3. Tester l'application
+curl http://localhost
+
+# 4. Déployer une nouvelle version (le CI appelle ça automatiquement)
 .\deploy-blue-green.ps1
 
-# Rollback immédiat vers le slot précédent (sans migration ni pull)
+# 5. Rollback immédiat vers le slot précédent
 .\deploy-blue-green.ps1 -Rollback
 
-# Vérifier le slot actif
-curl -I http://localhost | findstr X-Active-Slot
+# 6. Voir tous les conteneurs
+docker compose ps
 ```
 
 ### Cycle de déploiement
 
 ```
 push main → CI (tests + build + push :sha vers GHCR)
-          → CD (deploy-blue-green.ps1)
+          → CD (deploy-blue-green.ps1 -ImageTag <sha>)
                ├─ [1] Pull image :sha sur slot inactif
                ├─ [2] Démarrer la DB
                ├─ [3] Attendre healthcheck MySQL
-               ├─ [4] Appliquer migration expand
+               ├─ [4] Appliquer migration expand (idempotente)
                ├─ [5] Démarrer le slot inactif
-               └─ [6] nginx -s reload → trafic basculé
+               └─ [6] Écrire dynamic.yml → Traefik recharge (trafic basculé)
 ```
 
 ### Stratégie de mise à jour de la base (Expand / Contract)
@@ -286,7 +306,7 @@ docker pull ghcr.io/lamikad0v2/cesizen:latest
 
 | Déclencheur | Stage CI | Stage CD (Blue/Green) |
 |---|---|---|
-| `push` sur `main` | Tests + SonarCloud + **Build Docker + Push GHCR** | **Migration expand + Bascule slot** |
+| `push` sur `main` | Tests + SonarCloud + **Build Docker + Push GHCR** | **Migration expand + Bascule Traefik** |
 | `pull_request` vers `main` | Tests + SonarCloud + **Build Docker** (sans push) | — |
 
 Le pipeline tourne sur un **runner self-hosted** (machine locale). Le stage CD déploie sur le slot inactif et bascule Nginx sans interruption de service.
