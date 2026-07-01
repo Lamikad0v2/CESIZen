@@ -15,5 +15,11 @@ export default defineConfig({
     setupFiles: './src/setupTests.js',
     css: false,
     exclude: ['**/node_modules/**', '**/e2e/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: './coverage',
+      exclude: ['**/node_modules/**', '**/e2e/**', 'src/setupTests.js'],
+    },
   },
 })
