@@ -15,6 +15,10 @@ jobs:
     name: Build, Test & SonarCloud
     runs-on: self-hosted
 
+    env:
+      PHP_BIN: C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64\php.exe
+      TOOLS_BIN: ${{ runner.temp }}\runner-tools
+
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────
       - name: Checkout code
@@ -22,29 +26,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── 2. PHP (Laragon) + Composer ────────────────────────────────
+      # ── 2. PHP (Laragon) + Composer.bat ────────────────────────────
       - name: Setup PHP & Composer
         run: |
           $phpDir = "C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64"
-          Add-Content -Path $env:GITHUB_PATH -Value $phpDir
-
-          $bin = "$env:USERPROFILE\.runner-tools"
+          $bin    = $env:TOOLS_BIN
           New-Item -ItemType Directory -Force -Path $bin | Out-Null
-          if (-not (Test-Path "$bin\composer")) {
-            & "$phpDir\php.exe" -r "copy('https://getcomposer.org/installer', 'cs-setup.php');"
-            & "$phpDir\php.exe" cs-setup.php --install-dir="$bin" --filename=composer
-            Remove-Item -Force cs-setup.php
+
+          # Télécharger composer.phar si absent
+          if (-not (Test-Path "$bin\composer.phar")) {
+            & "$phpDir\php.exe" -r "copy('https://getcomposer.org/installer','cs.php');"
+            & "$phpDir\php.exe" cs.php --install-dir="$bin" --filename=composer.phar
+            Remove-Item -Force cs.php
           }
+
+          # Créer un vrai composer.bat appelable depuis n'importe quel shell
+          $bat = "@echo off`r`n`"$phpDir\php.exe`" `"$bin\composer.phar`" %*"
+          Set-Content -Path "$bin\composer.bat" -Value $bat -Encoding ASCII
+          Write-Host "Composer ready: $(& `"$phpDir\php.exe`" `"$bin\composer.phar`" --version)"
+
+          # Ajouter PHP + tools au PATH pour les steps suivants
+          Add-Content -Path $env:GITHUB_PATH -Value $phpDir
           Add-Content -Path $env:GITHUB_PATH -Value $bin
 
       # ── 3. Backend PHP ─────────────────────────────────────────────
       - name: Install PHP dependencies
         working-directory: backend
+        shell: cmd
         run: |
-          Remove-Item -Recurse -Force "vendor" -ErrorAction SilentlyContinue
-          composer install --no-interaction --prefer-dist
-          Write-Host "=== vendor/bin ==="
-          Get-ChildItem "vendor\bin"
+          rmdir /s /q vendor 2>nul
+          "%TOOLS_BIN%\composer.bat" install --no-interaction --prefer-dist
 
       - name: Run PHPUnit tests
         working-directory: backend
