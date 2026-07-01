@@ -42,7 +42,7 @@ jobs:
 
       - name: Run PHPUnit tests
         working-directory: backend
-        run: php vendor/bin/phpunit --coverage-clover=coverage.xml
+        run: .\vendor\bin\phpunit.bat
 
       # ── 4. Frontend React ──────────────────────────────────────────
       - name: Set up Node.js
