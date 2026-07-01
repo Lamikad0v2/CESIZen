@@ -1,5 +1,5 @@
 # =============================================================
-# deploy.ps1 — Script de déploiement automatisé CESIZen (TP4)
+# deploy.ps1 — Script de déploiement automatisé CESIZen
 #
 # Appelé par le pipeline CI après le push de l'image Docker.
 # Exécution : & .\deploy.ps1

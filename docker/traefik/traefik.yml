@@ -1,4 +1,4 @@
-# traefik.yml — Configuration statique Traefik (TP5)
+# traefik.yml — Configuration statique Traefik
 # Dashboard : http://localhost:8080/dashboard/
 
 api:

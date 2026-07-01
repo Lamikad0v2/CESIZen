@@ -1,6 +1,6 @@
 -- =============================================================
 -- CESIZen — Migration V1 : schéma initial
--- Généré en artefact CI (TP2), appliqué en CD (TP4).
+-- Généré en artefact CI appliqué en CD
 --
 -- IDEMPOTENCE : chaque instruction est rejouable sans erreur
 --   • CREATE TABLE  → IF NOT EXISTS (jamais de doublon)

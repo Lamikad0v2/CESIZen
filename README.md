@@ -113,7 +113,7 @@ Le stage CD ne se déclenche **jamais** sur une pull request — uniquement quan
 
 ---
 
-## Déploiement Blue/Green (TP5)
+## Déploiement Blue/Green
 
 ### Architecture
 
@@ -232,7 +232,7 @@ Aucune perte de données car la phase CONTRACT n'a pas encore eu lieu.
 
 ## Migrations de base de données
 
-Le fichier [`database/migrations/V1__initial_schema.sql`](database/migrations/V1__initial_schema.sql) est l'artefact de migration produit en TP2 et appliqué automatiquement par le pipeline CD en TP4.
+Le fichier [`database/migrations/V1__initial_schema.sql`](database/migrations/V1__initial_schema.sql) est l'artefact de migration produit et appliqué automatiquement par le pipeline CD.
 
 ### Garanties d'idempotence
 

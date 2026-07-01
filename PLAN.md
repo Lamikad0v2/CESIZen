@@ -1,4 +1,4 @@
-# PLAN — Stratégie de déploiement Blue/Green (TP5)
+# PLAN — Stratégie de déploiement Blue/Green
 
 > Document écrit **avant l'implémentation** conformément aux exigences du TP.
 
