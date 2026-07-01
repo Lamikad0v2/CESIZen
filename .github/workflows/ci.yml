@@ -22,13 +22,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ── 2. Composer (téléchargé si absent du PATH) ─────────────────
-      - name: Install Composer
+      # ── 2. Ajouter PHP (Laragon) et Composer au PATH ───────────────
+      - name: Setup PHP & Composer
         run: |
+          $phpDir = "C:\laragon\bin\php\php-8.3.16-Win32-vs16-x64"
+          Add-Content -Path $env:GITHUB_PATH -Value $phpDir
+
           $bin = "$env:USERPROFILE\.runner-tools"
           New-Item -ItemType Directory -Force -Path $bin | Out-Null
-          php -r "copy('https://getcomposer.org/installer', 'cs-setup.php');"
-          php cs-setup.php --install-dir="$bin" --filename=composer
+          & "$phpDir\php.exe" -r "copy('https://getcomposer.org/installer', 'cs-setup.php');"
+          & "$phpDir\php.exe" cs-setup.php --install-dir="$bin" --filename=composer
           Remove-Item -Force cs-setup.php
           Add-Content -Path $env:GITHUB_PATH -Value $bin
 
