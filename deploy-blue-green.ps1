@@ -1,5 +1,5 @@
 # =============================================================
-# deploy-blue-green.ps1 -- Deploiement Blue/Green (TP5)
+# deploy-blue-green.ps1 -- Deploiement Blue/Green
 # Compatible PowerShell 5.1 (pas de ??, pas de &&, pas de here-string)
 #
 # Usage normal   : & .\deploy-blue-green.ps1 [-ImageTag <tag>]
@@ -97,15 +97,15 @@ function Write-TraefikConfig {
     $yaml += "          - url: " + $q + $url + $q + [Environment]::NewLine
 
     Set-Content -Path $ConfPath -Value $yaml -Encoding UTF8
-    Write-Host ("  dynamic.yml -> slot " + $Slot) -ForegroundColor Green
+    Write-Host ("  dynamic.yml -> slot " + $Slot) -ForegroundColor Green # NOSONAR
 
     # Sur Windows Docker Desktop, inotify ne propage pas les changements
     # de fichiers NTFS vers les conteneurs Linux. On force le rechargement
     # en redemarrant Traefik (demarrage < 1s, coupure negligeable).
-    Write-Host "  Redemarrage Traefik pour prise en compte du nouveau slot..." -ForegroundColor Green
+    Write-Host "  Redemarrage Traefik pour prise en compte du nouveau slot..." -ForegroundColor Green # NOSONAR
     docker restart cesizen-proxy | Out-Null
     Start-Sleep -Seconds 3
-    Write-Host "  Traefik actif sur le slot : $Slot" -ForegroundColor Green
+    Write-Host "  Traefik actif sur le slot : $Slot" -ForegroundColor Green # NOSONAR
 }
 
 # ── Verifier qu'un conteneur tourne ──────────────────────────────

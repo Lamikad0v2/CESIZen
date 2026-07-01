@@ -10,7 +10,7 @@ services:
       MYSQL_USER: cesizen
       MYSQL_PASSWORD: ${DB_PASS}
     volumes:
-      - ./database/cesizen_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/migrations/V1__initial_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
