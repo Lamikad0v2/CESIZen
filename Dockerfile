@@ -15,12 +15,9 @@ RUN npm run build
 # ── Stage 2 : PHP 8.1 + Apache ────────────────────────────────────
 FROM php:8.1-apache
 
-# Extensions PHP requises
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-    && docker-php-ext-install pdo pdo_mysql \
-    && a2enmod rewrite \
-    && rm -rf /var/lib/apt/lists/*
+# Extensions PHP requises (pdo_mysql est bundlé dans l'image officielle)
+RUN docker-php-ext-install pdo pdo_mysql \
+    && a2enmod rewrite
 
 # Composer depuis l'image officielle
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -28,12 +25,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Document root = backend PHP
 WORKDIR /var/www/html
 
-# Dépendances Composer
+# Dépendances Composer — skip autoloader (classmap impossible sans le code)
 COPY backend/composer.json backend/composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-dev --no-interaction --prefer-dist --no-autoloader --no-scripts
 
-# Code backend
+# Code backend + génération du classmap final
 COPY backend/ ./
+RUN composer dump-autoload --optimize --no-dev
 
 # Build frontend → sous-répertoire dist/
 COPY --from=frontend-build /app/dist/ ./dist/
