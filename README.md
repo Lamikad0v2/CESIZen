@@ -6,10 +6,10 @@ Application de suivi émotionnel — React + PHP.
 
 ## Statut CI/CD
 
-| Pipeline | Qualité |
-|---|---|
-| [![CI Pipeline](https://github.com/Lamikad0v2/CESIZen/actions/workflows/ci.yml/badge.svg)](https://github.com/Lamikad0v2/CESIZen/actions/workflows/ci.yml) | [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Lamikad0v2_CESIZen&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Lamikad0v2_CESIZen) |
-| | [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Lamikad0v2_CESIZen&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Lamikad0v2_CESIZen) |
+| Pipeline | Qualité | Image Docker |
+|---|---|---|
+| [![CI Pipeline](https://github.com/Lamikad0v2/CESIZen/actions/workflows/ci.yml/badge.svg)](https://github.com/Lamikad0v2/CESIZen/actions/workflows/ci.yml) | [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Lamikad0v2_CESIZen&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Lamikad0v2_CESIZen) | `ghcr.io/lamikad0v2/cesizen:latest` |
+| | [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Lamikad0v2_CESIZen&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Lamikad0v2_CESIZen) | [GitHub Container Registry](https://github.com/Lamikad0v2/CESIZen/pkgs/container/cesizen) |
 
 ---
 
@@ -102,19 +102,59 @@ on:
 
 ---
 
-## Installation locale
+## Lancer avec Docker Compose
+
+> Pré-requis : Docker Desktop installé et démarré.
 
 ```bash
-# Cloner le dépôt
+# 1. Cloner le dépôt
 git clone https://github.com/Lamikad0v2/CESIZen.git
+cd CESIZen
 
+# 2. Créer le fichier de secrets (jamais commité)
+cp .env.example .env
+# Éditer .env et renseigner DB_PASS et MYSQL_ROOT_PASSWORD
+
+# 3. Lancer l'application (build + démarrage en une commande)
+docker compose up --build
+
+# L'application est disponible sur http://localhost:8080
+```
+
+Pour arrêter :
+```bash
+docker compose down          # arrêter les conteneurs
+docker compose down -v       # arrêter + supprimer les volumes (reset BDD)
+```
+
+Pour récupérer la dernière image depuis GHCR sans rebuild :
+```bash
+docker pull ghcr.io/lamikad0v2/cesizen:latest
+```
+
+---
+
+## Conditions d'exécution du pipeline CI
+
+| Déclencheur | Étapes exécutées |
+|---|---|
+| `push` sur `main` | Tests PHP + Tests React + Lint + SonarCloud + **Build Docker + Push GHCR** |
+| `pull_request` vers `main` | Tests PHP + Tests React + Lint + SonarCloud + **Build Docker** (sans push) |
+
+Le pipeline tourne sur un **runner self-hosted** (machine locale). Le push Docker n'a lieu que sur `push` direct vers `main` (merge de PR).
+
+---
+
+## Installation locale (sans Docker)
+
+```bash
 # Backend
 cd backend && composer install
 
 # Frontend
 cd frontend && npm install
 
-# Lancer les tests
+# Tests
 cd backend && ./vendor/bin/phpunit
 cd frontend && npm run test
 cd frontend && npm run test:coverage  # avec rapport lcov

@@ -1,0 +1,13 @@
+Options -Indexes
+RewriteEngine On
+
+# 1. Servir les fichiers statiques tels quels (assets Vite, fonts, etc.)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 2. Routes API → routeur PHP (index.php)
+RewriteCond %{REQUEST_URI} ^/api
+RewriteRule ^ index.php [QSA,L]
+
+# 3. SPA fallback — toutes les autres URLs → dist/index.html (React Router)
+RewriteRule ^ dist/index.html [L]

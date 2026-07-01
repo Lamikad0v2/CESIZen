@@ -12,9 +12,11 @@ declare(strict_types=1);
  */
 class Database
 {
-    private const DB_HOST  = 'localhost';
-    private const DB_USER  = 'root';
-    private const DB_PASS  = '';
+    // Valeurs par défaut pour le développement local (Laragon)
+    // En production Docker, ces valeurs sont surchargées par les variables d'env
+    private const DB_HOST_DEFAULT = 'localhost';
+    private const DB_USER_DEFAULT = 'root';
+    private const DB_PASS_DEFAULT = '';
 
     /** @var Database|null Instance unique de la classe */
     private static ?Database $instance = null;
@@ -36,11 +38,14 @@ class Database
             PDO::ATTR_EMULATE_PREPARES   => false,
         ];
 
-        $dbName = $_ENV['CESIZEN_DB_NAME'] ?? getenv('CESIZEN_DB_NAME') ?: 'cesizen';
-        $dsn    = 'mysql:host=' . self::DB_HOST . ';dbname=' . $dbName . ';charset=utf8mb4';
+        $host   = $_ENV['DB_HOST']          ?? getenv('DB_HOST')          ?: self::DB_HOST_DEFAULT;
+        $user   = $_ENV['DB_USER']          ?? getenv('DB_USER')          ?: self::DB_USER_DEFAULT;
+        $pass   = $_ENV['DB_PASS']          ?? getenv('DB_PASS')          ?: self::DB_PASS_DEFAULT;
+        $dbName = $_ENV['CESIZEN_DB_NAME']  ?? getenv('CESIZEN_DB_NAME')  ?: 'cesizen';
+        $dsn    = "mysql:host={$host};dbname={$dbName};charset=utf8mb4";
 
         try {
-            $this->connection = new PDO($dsn, self::DB_USER, self::DB_PASS, $options);
+            $this->connection = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
             // On ne propage jamais le message brut au client
             throw new RuntimeException('Database connection failed.', 500, $e);

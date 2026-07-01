@@ -1,0 +1,41 @@
+services:
+
+  # ── Application (PHP + Apache + React) ────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: db
+      DB_USER: cesizen
+      DB_PASS: ${DB_PASS}
+      CESIZEN_DB_NAME: cesizen
+      CORS_ORIGIN: http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Base de données MySQL ──────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: cesizen
+      MYSQL_USER: cesizen
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - ./database/cesizen_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  db_data:
