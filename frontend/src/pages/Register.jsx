@@ -6,8 +6,8 @@ import api from '../api/axios'
 // ----------------------------------------------------------------
 // Règles de validation — miroir exact des regex backend PHP
 // ----------------------------------------------------------------
-const REGEX_NAME  = /^[\p{L}\s\-]{2,}$/u
-const REGEX_EMAIL = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/
+const REGEX_NAME  = /^[\p{L}\s-]{2,}$/u
+const REGEX_EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
 function isValidName(value)  { return REGEX_NAME.test(value.trim()) }
 function isValidEmail(value) { return REGEX_EMAIL.test(value.trim()) }

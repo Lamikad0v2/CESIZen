@@ -6,7 +6,7 @@ import api from '../api/axios'
 // ----------------------------------------------------------------
 // Validation (miroir des règles backend)
 // ----------------------------------------------------------------
-const REGEX_NAME = /^[\p{L}\s\-]{2,}$/u
+const REGEX_NAME = /^[\p{L}\s-]{2,}$/u
 
 function isValidName(v) { return REGEX_NAME.test(v.trim()) }
 

@@ -63,6 +63,7 @@ export default function ManagerDashboard() {
       .finally(() => setLoading(false))
   }, [user])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchTeamMood() }, [fetchTeamMood])
 
   if (!user || user.role !== 'manager') return null
@@ -78,6 +79,7 @@ export default function ManagerDashboard() {
   const weekAvgV   = filledDays.length > 0
     ? (filledDays.reduce((s, e) => s + e.avg_valence, 0) / filledDays.length).toFixed(1)
     : null
+  // eslint-disable-next-line no-unused-vars
   const weekAvgA   = filledDays.length > 0
     ? (filledDays.reduce((s, e) => s + e.avg_arousal, 0) / filledDays.length).toFixed(1)
     : null

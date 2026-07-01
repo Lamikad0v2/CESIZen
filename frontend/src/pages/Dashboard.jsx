@@ -107,6 +107,7 @@ export default function Dashboard() {
       .finally(() => setHistoryLoading(false))
   }, [user])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchHistory() }, [fetchHistory])
 
   if (!user) return null

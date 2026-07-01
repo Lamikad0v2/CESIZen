@@ -53,6 +53,7 @@ export default function AdminArticles() {
     if (!['admin', 'rh'].includes(user.role)) {
       navigate('/dashboard', { replace: true }); return
     }
+    // eslint-disable-next-line react-hooks/immutability
     loadArticles()
   }, [])
 

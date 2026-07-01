@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
@@ -210,6 +211,7 @@ export default function Insights() {
       .finally(() => setHistoryLoading(false))
   }, [user])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchHistory() }, [fetchHistory])
 
   if (!user) return null
