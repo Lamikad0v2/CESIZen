@@ -62,7 +62,7 @@ services:
     image: traefik:v3.3
     ports:
       - "80:80"      # trafic applicatif
-      - "8080:8080"  # dashboard Traefik → http://localhost:8080/dashboard/
+      - "8090:8080"  # dashboard Traefik → http://localhost:8090/dashboard/
     volumes:
       - ./docker/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./docker/traefik/dynamic.yml:/etc/traefik/dynamic.yml
