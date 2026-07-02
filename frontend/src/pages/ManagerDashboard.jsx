@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import { TrendingUp, Users, Inbox, AlertCircle } from 'lucide-react'
 import api from '../api/axios'
+import PropTypes from 'prop-types'
 
 function formatDayLabel(dateStr) {
   const [y, mo, d] = dateStr.split('-').map(Number)
@@ -18,7 +19,7 @@ function ChartTooltip({ active, payload, label }) {
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-white/10 rounded-2xl shadow-xl px-4 py-3 text-sm">
       <p className="text-gray-400 text-xs mb-2 font-medium">{label}</p>
       {payload.map(p =>
-        p.value != null ? (
+        p.value == null ? null : (
           <div key={p.dataKey} className="flex items-center gap-2 mb-0.5">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
             <span className="text-gray-500 dark:text-gray-400 text-xs">
@@ -26,15 +27,27 @@ function ChartTooltip({ active, payload, label }) {
             </span>
             <span className="font-semibold text-gray-900 dark:text-white">{p.value}/100</span>
           </div>
-        ) : null
+        )
       )}
       {payload[0]?.payload?.nb_saisies != null && (
         <p className="text-gray-400 text-xs mt-1">
-          {payload[0].payload.nb_saisies} saisie{payload[0].payload.nb_saisies !== 1 ? 's' : ''}
+          {payload[0].payload.nb_saisies} saisie{payload[0].payload.nb_saisies === 1 ? '' : 's'}
         </p>
       )}
     </div>
   )
+}
+ChartTooltip.propTypes = {
+  active:  PropTypes.bool,
+  payload: PropTypes.arrayOf(PropTypes.shape({
+    dataKey: PropTypes.string,
+    value:   PropTypes.number,
+    color:   PropTypes.string,
+    payload: PropTypes.shape({
+      nb_saisies: PropTypes.number,
+    }),
+  })),
+  label:   PropTypes.string,
 }
 
 export default function ManagerDashboard() {
@@ -55,7 +68,7 @@ export default function ManagerDashboard() {
   }, [user, navigate])
 
   const fetchTeamMood = useCallback(() => {
-    if (!user || user.role !== 'manager') return
+    if (!user || user?.role !== 'manager') return
     setLoading(true); setError(null)
     api.get('/api/manager/team-mood')
       .then(({ data }) => setTeamData(data.data ?? []))
@@ -66,7 +79,7 @@ export default function ManagerDashboard() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchTeamMood() }, [fetchTeamMood])
 
-  if (!user || user.role !== 'manager') return null
+  if (!user || user?.role !== 'manager') return null
 
   const chartData  = teamData.map(e => ({
     date:        formatDayLabel(e.date),
@@ -79,11 +92,44 @@ export default function ManagerDashboard() {
   const weekAvgV   = filledDays.length > 0
     ? (filledDays.reduce((s, e) => s + e.avg_valence, 0) / filledDays.length).toFixed(1)
     : null
-  // eslint-disable-next-line no-unused-vars
-  const weekAvgA   = filledDays.length > 0
-    ? (filledDays.reduce((s, e) => s + e.avg_arousal, 0) / filledDays.length).toFixed(1)
-    : null
   const hasData    = filledDays.length > 0
+
+  const chartContent = hasData ? (
+    <ResponsiveContainer width="100%" height={220}>
+      <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="teamValenceGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#1b7a8a" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#1b7a8a" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="teamArousalGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.15} />
+            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+        <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
+          tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
+        <ReferenceLine y={30} stroke="#fca5a5" strokeDasharray="3 3" strokeOpacity={0.6} />
+        <Tooltip content={<ChartTooltip />} />
+        <Area type="monotone" dataKey="avg_valence" stroke="#1b7a8a" strokeWidth={2.5}
+          fill="url(#teamValenceGrad)"
+          dot={{ r: 4, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
+          connectNulls={false} />
+        <Area type="monotone" dataKey="avg_arousal" stroke="#f59e0b" strokeWidth={2.5}
+          fill="url(#teamArousalGrad)"
+          dot={{ r: 4, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
+          connectNulls={false} />
+      </AreaChart>
+    </ResponsiveContainer>
+  ) : (
+    <div className="h-52 flex flex-col items-center justify-center gap-3">
+      <Inbox size={28} className="text-gray-300 dark:text-gray-700" />
+      <p className="text-gray-400 dark:text-gray-600 text-sm font-medium">Aucune donnée.</p>
+    </div>
+  )
 
   return (
     <div className="space-y-5">
@@ -116,8 +162,8 @@ export default function ManagerDashboard() {
       {!error && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Valence moy.',  value: today?.avg_valence != null ? `${today.avg_valence}/100` : '—' },
-            { label: 'Activation moy.', value: today?.avg_arousal != null ? `${today.avg_arousal}/100` : '—' },
+            { label: 'Valence moy.',  value: today?.avg_valence == null ? '—' : `${today.avg_valence}/100` },
+            { label: 'Activation moy.', value: today?.avg_arousal == null ? '—' : `${today.avg_arousal}/100` },
             { label: 'Saisies auj.',  value: today?.nb_saisies ?? 0 },
             { label: 'Valence 7j',    value: weekAvgV ? `${weekAvgV}/100` : '—' },
           ].map(({ label, value }) => (
@@ -152,42 +198,7 @@ export default function ManagerDashboard() {
             <div className="h-52 flex items-center justify-center">
               <div className="w-8 h-8 border-2 border-cesizen-400 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : !hasData ? (
-            <div className="h-52 flex flex-col items-center justify-center gap-3">
-              <Inbox size={28} className="text-gray-300 dark:text-gray-700" />
-              <p className="text-gray-400 dark:text-gray-600 text-sm font-medium">Aucune donnée.</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="teamValenceGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#1b7a8a" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#1b7a8a" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="teamArousalGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
-                  tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28} />
-                <ReferenceLine y={30} stroke="#fca5a5" strokeDasharray="3 3" strokeOpacity={0.6} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="avg_valence" stroke="#1b7a8a" strokeWidth={2.5}
-                  fill="url(#teamValenceGrad)"
-                  dot={{ r: 4, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
-                  connectNulls={false} />
-                <Area type="monotone" dataKey="avg_arousal" stroke="#f59e0b" strokeWidth={2.5}
-                  fill="url(#teamArousalGrad)"
-                  dot={{ r: 4, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
-                  connectNulls={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
+          ) : chartContent}
         </div>
       )}
 
@@ -206,16 +217,16 @@ export default function ManagerDashboard() {
                   <div>
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-200 capitalize">{label}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-600">
-                      {entry.nb_saisies} saisie{entry.nb_saisies !== 1 ? 's' : ''}
+                      {entry.nb_saisies} saisie{entry.nb_saisies === 1 ? '' : 's'}
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    {entry.avg_valence != null ? (
+                    {entry.avg_valence == null ? (
+                      <span className="text-xs text-gray-300 dark:text-gray-700 italic">—</span>
+                    ) : (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-cesizen-50 dark:bg-cesizen-950/40 text-cesizen-600 dark:text-cesizen-400">
                         V {entry.avg_valence}
                       </span>
-                    ) : (
-                      <span className="text-xs text-gray-300 dark:text-gray-700 italic">—</span>
                     )}
                     {entry.avg_arousal != null && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">

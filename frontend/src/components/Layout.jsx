@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/static-components */
 import { useState, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import PropTypes from 'prop-types'
 import {
   Home, ShieldCheck, Users, User, LogOut,
   Moon, Sun, Menu, X, PenLine,
@@ -59,6 +60,15 @@ function NavItem({ to, icon: Icon, label, isActive, collapsed, onClick }) {
   )
 }
 
+NavItem.propTypes = {
+  to:        PropTypes.string.isRequired,
+  icon:      PropTypes.elementType.isRequired,
+  label:     PropTypes.string.isRequired,
+  isActive:  PropTypes.bool.isRequired,
+  collapsed: PropTypes.bool.isRequired,
+  onClick:   PropTypes.func,
+}
+
 // ----------------------------------------------------------------
 // NavSection — catégorie rétractable
 // ----------------------------------------------------------------
@@ -96,7 +106,7 @@ function NavSection({ label, items, collapsed, isExpanded, onToggle, isActive, o
         className="overflow-hidden transition-all duration-200"
         style={{ maxHeight: (collapsed || isExpanded) ? '500px' : '0px' }}
       >
-        <div className={`space-y-0.5 ${collapsed ? 'py-0.5' : 'py-0.5'}`}>
+        <div className="space-y-0.5 py-0.5">
           {items.map(({ to, icon, label: itemLabel }) => (
             <NavItem
               key={to}
@@ -112,6 +122,171 @@ function NavSection({ label, items, collapsed, isExpanded, onToggle, isActive, o
       </div>
     </div>
   )
+}
+
+NavSection.propTypes = {
+  label:      PropTypes.string.isRequired,
+  items:      PropTypes.arrayOf(PropTypes.shape({
+    to:    PropTypes.string.isRequired,
+    icon:  PropTypes.elementType.isRequired,
+    label: PropTypes.string.isRequired,
+  })).isRequired,
+  collapsed:   PropTypes.bool.isRequired,
+  isExpanded:  PropTypes.bool.isRequired,
+  onToggle:    PropTypes.func.isRequired,
+  isActive:    PropTypes.func.isRequired,
+  onNavClick:  PropTypes.func,
+}
+
+// ----------------------------------------------------------------
+// SidebarContent (desktop + mobile drawer) — S6478: défini hors du parent
+// ----------------------------------------------------------------
+function SidebarContent({
+  isMobile, onClose,
+  collapsed, expandedSections, navSections,
+  isActive, toggleCollapse, toggleSection,
+  initials, user, handleLogout,
+}) {
+  const sidebarCollapsed = isMobile ? false : collapsed
+
+  return (
+    <>
+      {/* ── Logo + bouton collapse ── */}
+      <div className={`flex items-center border-b border-gray-200/60 dark:border-white/10 shrink-0
+                       transition-all duration-200
+                       ${sidebarCollapsed ? 'justify-center px-3 py-4' : 'justify-between px-5 py-5'}`}>
+        {!sidebarCollapsed && (
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cesizen-500 flex items-center justify-center shadow-md">
+              <span className="text-white text-xs font-bold tracking-tight">CZ</span>
+            </div>
+            <span className="text-base font-bold tracking-tight text-gray-900 dark:text-white">
+              CESIZen
+            </span>
+          </div>
+        )}
+
+        {sidebarCollapsed && (
+          <div className="w-8 h-8 rounded-xl bg-cesizen-500 flex items-center justify-center shadow-md">
+            <span className="text-white text-xs font-bold tracking-tight">CZ</span>
+          </div>
+        )}
+
+        {/* Bouton fermeture mobile */}
+        {isMobile && onClose && (
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-xl
+                       text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition"
+          >
+            <X size={15} />
+          </button>
+        )}
+
+        {/* Bouton collapse desktop */}
+        {!isMobile && (
+          <button
+            onClick={toggleCollapse}
+            aria-label={collapsed ? 'Développer la sidebar' : 'Réduire la sidebar'}
+            className={`w-7 h-7 flex items-center justify-center rounded-xl
+                        text-gray-400 hover:text-cesizen-600 hover:bg-cesizen-50 dark:hover:bg-cesizen-900/30
+                        transition-colors duration-150 ${sidebarCollapsed ? 'mt-0' : ''}`}
+          >
+            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+        )}
+      </div>
+
+      {/* ── Navigation par sections ── */}
+      <nav className={`flex-1 overflow-y-auto transition-all duration-200
+                       ${sidebarCollapsed ? 'px-2 py-3' : 'px-3 py-3'}`}>
+        {navSections.map(section => (
+          <NavSection
+            key={section.id}
+            label={section.label}
+            items={section.items}
+            collapsed={sidebarCollapsed}
+            isExpanded={expandedSections[section.id]}
+            onToggle={() => toggleSection(section.id)}
+            isActive={isActive}
+            onNavClick={isMobile ? onClose : undefined}
+          />
+        ))}
+      </nav>
+
+      {/* ── Utilisateur + Déconnexion ── */}
+      <div className={`border-t border-gray-200/60 dark:border-white/10 shrink-0
+                       ${sidebarCollapsed ? 'p-2' : 'p-3'}`}>
+        {sidebarCollapsed ? (
+          /* Mode icône : avatar centré + bouton logout */
+          <div className="flex flex-col items-center gap-1.5">
+            <Link
+              to="/profile"
+              title={`${user?.prenom} ${user?.nom}`}
+              className="group relative w-9 h-9 rounded-xl bg-cesizen-100 dark:bg-cesizen-900
+                         flex items-center justify-center hover:ring-2 hover:ring-cesizen-400 transition"
+            >
+              <span className="text-xs font-bold text-cesizen-700 dark:text-cesizen-300">{initials}</span>
+              <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap
+                               rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900
+                               text-xs font-medium px-2.5 py-1.5
+                               opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                {user?.prenom} {user?.nom}
+              </span>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="w-7 h-7 flex items-center justify-center rounded-xl
+                         text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+              title="Déconnexion"
+              aria-label="Déconnexion"
+            >
+              <LogOut size={13} />
+            </button>
+          </div>
+        ) : (
+          /* Mode expanded : card utilisateur */
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5">
+            <div className="w-8 h-8 rounded-xl bg-cesizen-100 dark:bg-cesizen-900
+                            flex items-center justify-center shrink-0">
+              <span className="text-xs font-bold text-cesizen-700 dark:text-cesizen-300">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
+                {user?.prenom} {user?.nom}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 truncate capitalize">
+                {user?.role}
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-7 h-7 flex items-center justify-center rounded-xl
+                         text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+              title="Déconnexion"
+              aria-label="Déconnexion"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+SidebarContent.propTypes = {
+  isMobile:         PropTypes.bool,
+  onClose:          PropTypes.func,
+  collapsed:        PropTypes.bool.isRequired,
+  expandedSections: PropTypes.object.isRequired,
+  navSections:      PropTypes.array.isRequired,
+  isActive:         PropTypes.func.isRequired,
+  toggleCollapse:   PropTypes.func.isRequired,
+  toggleSection:    PropTypes.func.isRequired,
+  initials:         PropTypes.string.isRequired,
+  user:             PropTypes.object,
+  handleLogout:     PropTypes.func.isRequired,
 }
 
 // ----------------------------------------------------------------
@@ -199,136 +374,11 @@ export default function Layout({ children }) {
   // Version plate pour la bottom tab bar mobile
   const flatNavItems = navSections.flatMap(s => s.items)
 
-  // ----------------------------------------------------------------
-  // Sidebar content (desktop + mobile drawer)
-  // ----------------------------------------------------------------
-  function SidebarContent({ isMobile = false, onClose }) {
-    const sidebarCollapsed = isMobile ? false : collapsed
-
-    return (
-      <>
-        {/* ── Logo + bouton collapse ── */}
-        <div className={`flex items-center border-b border-gray-200/60 dark:border-white/10 shrink-0
-                         transition-all duration-200
-                         ${sidebarCollapsed ? 'justify-center px-3 py-4' : 'justify-between px-5 py-5'}`}>
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-cesizen-500 flex items-center justify-center shadow-md">
-                <span className="text-white text-xs font-bold tracking-tight">CZ</span>
-              </div>
-              <span className="text-base font-bold tracking-tight text-gray-900 dark:text-white">
-                CESIZen
-              </span>
-            </div>
-          )}
-
-          {sidebarCollapsed && (
-            <div className="w-8 h-8 rounded-xl bg-cesizen-500 flex items-center justify-center shadow-md">
-              <span className="text-white text-xs font-bold tracking-tight">CZ</span>
-            </div>
-          )}
-
-          {/* Bouton fermeture mobile */}
-          {isMobile && onClose && (
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-xl
-                         text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition"
-            >
-              <X size={15} />
-            </button>
-          )}
-
-          {/* Bouton collapse desktop */}
-          {!isMobile && (
-            <button
-              onClick={toggleCollapse}
-              aria-label={collapsed ? 'Développer la sidebar' : 'Réduire la sidebar'}
-              className={`w-7 h-7 flex items-center justify-center rounded-xl
-                          text-gray-400 hover:text-cesizen-600 hover:bg-cesizen-50 dark:hover:bg-cesizen-900/30
-                          transition-colors duration-150 ${sidebarCollapsed ? 'mt-0' : ''}`}
-            >
-              {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-            </button>
-          )}
-        </div>
-
-        {/* ── Navigation par sections ── */}
-        <nav className={`flex-1 overflow-y-auto transition-all duration-200
-                         ${sidebarCollapsed ? 'px-2 py-3' : 'px-3 py-3'}`}>
-          {navSections.map(section => (
-            <NavSection
-              key={section.id}
-              label={section.label}
-              items={section.items}
-              collapsed={sidebarCollapsed}
-              isExpanded={expandedSections[section.id]}
-              onToggle={() => toggleSection(section.id)}
-              isActive={isActive}
-              onNavClick={isMobile ? onClose : undefined}
-            />
-          ))}
-        </nav>
-
-        {/* ── Utilisateur + Déconnexion ── */}
-        <div className={`border-t border-gray-200/60 dark:border-white/10 shrink-0
-                         ${sidebarCollapsed ? 'p-2' : 'p-3'}`}>
-          {sidebarCollapsed ? (
-            /* Mode icône : avatar centré + bouton logout */
-            <div className="flex flex-col items-center gap-1.5">
-              <Link
-                to="/profile"
-                title={`${user?.prenom} ${user?.nom}`}
-                className="group relative w-9 h-9 rounded-xl bg-cesizen-100 dark:bg-cesizen-900
-                           flex items-center justify-center hover:ring-2 hover:ring-cesizen-400 transition"
-              >
-                <span className="text-xs font-bold text-cesizen-700 dark:text-cesizen-300">{initials}</span>
-                <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap
-                                 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900
-                                 text-xs font-medium px-2.5 py-1.5
-                                 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                  {user?.prenom} {user?.nom}
-                </span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="w-7 h-7 flex items-center justify-center rounded-xl
-                           text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                title="Déconnexion"
-                aria-label="Déconnexion"
-              >
-                <LogOut size={13} />
-              </button>
-            </div>
-          ) : (
-            /* Mode expanded : card utilisateur */
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-gray-50 dark:bg-white/5">
-              <div className="w-8 h-8 rounded-xl bg-cesizen-100 dark:bg-cesizen-900
-                              flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-cesizen-700 dark:text-cesizen-300">{initials}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
-                  {user?.prenom} {user?.nom}
-                </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 truncate capitalize">
-                  {user?.role}
-                </p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-7 h-7 flex items-center justify-center rounded-xl
-                           text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                title="Déconnexion"
-                aria-label="Déconnexion"
-              >
-                <LogOut size={14} />
-              </button>
-            </div>
-          )}
-        </div>
-      </>
-    )
+  // Props communs pour SidebarContent
+  const sidebarProps = {
+    collapsed, expandedSections, navSections,
+    isActive, toggleCollapse, toggleSection,
+    initials, user, handleLogout,
   }
 
   // ----------------------------------------------------------------
@@ -351,7 +401,7 @@ export default function Layout({ children }) {
                     border-r border-gray-200/50 dark:border-white/10
                     transition-all duration-200`}
       >
-        <SidebarContent />
+        <SidebarContent {...sidebarProps} />
       </aside>
 
       {/* ── Drawer mobile (overlay) ── */}
@@ -360,11 +410,15 @@ export default function Layout({ children }) {
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Fermer le menu"
+            onKeyDown={e => e.key === 'Enter' && setSidebarOpen(false)}
           />
           <aside className="relative flex flex-col w-64 h-full
                             bg-white dark:bg-gray-900
                             border-r border-gray-200/50 dark:border-white/10">
-            <SidebarContent isMobile onClose={() => setSidebarOpen(false)} />
+            <SidebarContent {...sidebarProps} isMobile onClose={() => setSidebarOpen(false)} />
           </aside>
         </div>
       )}
@@ -453,4 +507,8 @@ export default function Layout({ children }) {
       </nav>
     </div>
   )
+}
+
+Layout.propTypes = {
+  children: PropTypes.node.isRequired,
 }

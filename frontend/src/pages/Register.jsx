@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CheckCircle2, XCircle } from 'lucide-react'
+import PropTypes from 'prop-types'
 import api from '../api/axios'
 
 // ----------------------------------------------------------------
@@ -16,7 +17,7 @@ function getPasswordCriteria(password) {
   return {
     length:  password.length >= 8,
     upper:   /[A-Z]/.test(password),
-    digit:   /[0-9]/.test(password),
+    digit:   /\d/.test(password),
     special: /[\W_]/.test(password),
   }
 }
@@ -31,6 +32,11 @@ function CriterionRow({ met, label }) {
       {label}
     </li>
   )
+}
+
+CriterionRow.propTypes = {
+  met: PropTypes.bool.isRequired,
+  label: PropTypes.string.isRequired,
 }
 
 export default function Register() {
@@ -78,6 +84,14 @@ export default function Register() {
       : `${base} border-red-300 dark:border-red-700  focus:ring-red-400`
   }
 
+  const passwordBorderClass = allPasswordCriteriaMet
+    ? 'border-green-300 focus:ring-green-400'
+    : 'border-orange-300 focus:ring-orange-400'
+  const passwordInputClass =
+    'w-full rounded-2xl bg-gray-50 border px-4 py-3 text-sm text-gray-800 placeholder-gray-400 transition ' +
+    'focus:outline-none focus:ring-2 focus:border-transparent ' +
+    (form.mot_de_passe === '' ? 'border-gray-200 focus:ring-indigo-500' : passwordBorderClass)
+
   return (
     <div className="min-h-screen bg-[#F5F5F7] dark:bg-gray-950 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
@@ -118,10 +132,11 @@ export default function Register() {
             {/* Nom & Prénom — côte à côte */}
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+                <label htmlFor="nom" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
                   Nom
                 </label>
                 <input
+                  id="nom"
                   type="text"
                   name="nom"
                   value={form.nom}
@@ -138,10 +153,11 @@ export default function Register() {
               </div>
 
               <div className="flex-1">
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+                <label htmlFor="prenom" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
                   Prénom
                 </label>
                 <input
+                  id="prenom"
                   type="text"
                   name="prenom"
                   value={form.prenom}
@@ -160,10 +176,11 @@ export default function Register() {
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+              <label htmlFor="email" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
                 Adresse email
               </label>
               <input
+                id="email"
                 type="email"
                 name="email"
                 value={form.email}
@@ -181,24 +198,17 @@ export default function Register() {
 
             {/* Mot de passe */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+              <label htmlFor="mot_de_passe" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
                 Mot de passe
               </label>
               <input
+                id="mot_de_passe"
                 type="password"
                 name="mot_de_passe"
                 value={form.mot_de_passe}
                 onChange={handleChange}
                 placeholder="Créez un mot de passe fort"
-                className={
-                  'w-full rounded-2xl bg-gray-50 border px-4 py-3 text-sm text-gray-800 placeholder-gray-400 transition ' +
-                  'focus:outline-none focus:ring-2 focus:border-transparent ' +
-                  (form.mot_de_passe === ''
-                    ? 'border-gray-200 focus:ring-indigo-500'
-                    : allPasswordCriteriaMet
-                      ? 'border-green-300 focus:ring-green-400'
-                      : 'border-orange-300 focus:ring-orange-400')
-                }
+                className={passwordInputClass}
               />
 
               {/* Checklist des critères */}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, Calendar, X } from 'lucide-react'
+import PropTypes from 'prop-types'
 import api from '../api/axios'
 
 // ----------------------------------------------------------------
@@ -17,12 +18,18 @@ function ArticleModal({ article, onClose }) {
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 px-4 py-8"
       onClick={onClose}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClose() }}
     >
       <div
         className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-2xl
                    w-full max-w-2xl max-h-[85vh] flex flex-col
                    border border-white/50 dark:border-white/10"
         onClick={e => e.stopPropagation()}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
       >
         {/* En-tête */}
         <div className="flex items-start justify-between gap-4 p-7 border-b border-gray-100 dark:border-white/8 shrink-0">
@@ -56,6 +63,17 @@ function ArticleModal({ article, onClose }) {
       </div>
     </div>
   )
+}
+
+ArticleModal.propTypes = {
+  article: PropTypes.shape({
+    created_at: PropTypes.string,
+    title: PropTypes.string,
+    author_prenom: PropTypes.string,
+    author_nom: PropTypes.string,
+    content: PropTypes.string,
+  }),
+  onClose: PropTypes.func.isRequired,
 }
 
 // ----------------------------------------------------------------
@@ -105,6 +123,17 @@ function ArticleCard({ article, onClick }) {
       </div>
     </button>
   )
+}
+
+ArticleCard.propTypes = {
+  article: PropTypes.shape({
+    content: PropTypes.string,
+    created_at: PropTypes.string,
+    title: PropTypes.string,
+    author_prenom: PropTypes.string,
+    author_nom: PropTypes.string,
+  }).isRequired,
+  onClick: PropTypes.func.isRequired,
 }
 
 // ----------------------------------------------------------------

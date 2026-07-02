@@ -87,7 +87,7 @@ class AlertModelTest extends DatabaseTestCase
         // Arrange — créer deux alertes puis marquer la première comme lue
         $id1 = $this->model->create($this->userId,                   'Alerte 1');
         $uid2 = $this->insertUser('other@test.fr');
-        $id2 = $this->model->create($uid2, 'Alerte 2');
+        $this->model->create($uid2, 'Alerte 2');
         $this->model->markAsRead($id1);
 
         // Act

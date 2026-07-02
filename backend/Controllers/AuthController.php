@@ -153,7 +153,7 @@ class AuthController
         session_set_cookie_params([
             'lifetime' => 0,
             'path'     => '/',
-            'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+            'secure'   => true,
             'httponly' => true,
             'samesite' => 'Strict',
         ]);

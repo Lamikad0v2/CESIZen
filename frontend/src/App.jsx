@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import PropTypes from 'prop-types'
 import { ThemeProvider } from './context/ThemeContext'
 import Layout           from './components/Layout'
 import Login            from './pages/Login'
@@ -25,6 +26,7 @@ const V2_BANNER = (
 function AppLayout({ children }) {
   return <Layout>{children}</Layout>
 }
+AppLayout.propTypes = { children: PropTypes.node.isRequired }
 
 function App() {
   return (

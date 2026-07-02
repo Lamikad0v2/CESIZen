@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, XCircle, AlertCircle, User, Shield, Mail, Lock } from 'lucide-react'
+import PropTypes from 'prop-types'
 import api from '../api/axios'
 
 // ----------------------------------------------------------------
@@ -14,7 +15,7 @@ function getPasswordCriteria(password) {
   return {
     length:  password.length >= 8,
     upper:   /[A-Z]/.test(password),
-    digit:   /[0-9]/.test(password),
+    digit:   /\d/.test(password),
     special: /[\W_]/.test(password),
   }
 }
@@ -26,6 +27,11 @@ function CriterionRow({ met, label }) {
       {label}
     </li>
   )
+}
+
+CriterionRow.propTypes = {
+  met: PropTypes.bool.isRequired,
+  label: PropTypes.string.isRequired,
 }
 
 // ----------------------------------------------------------------
@@ -177,10 +183,11 @@ export default function Profile() {
           {/* Prénom + Nom */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+              <label htmlFor="prenom" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                 Prénom
               </label>
               <input
+                id="prenom"
                 type="text" name="prenom" value={form.prenom}
                 onChange={handleChange} required
                 className="w-full rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10
@@ -192,10 +199,11 @@ export default function Profile() {
               )}
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+              <label htmlFor="nom" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                 Nom
               </label>
               <input
+                id="nom"
                 type="text" name="nom" value={form.nom}
                 onChange={handleChange} required
                 className="w-full rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10

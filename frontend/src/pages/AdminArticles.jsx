@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Pencil, Trash2, X, BookOpen } from 'lucide-react'
 import api from '../api/axios'
+import PropTypes from 'prop-types'
 
 // ----------------------------------------------------------------
 // Modal réutilisable
@@ -27,6 +28,11 @@ function Modal({ title, onClose, children }) {
       </div>
     </div>
   )
+}
+Modal.propTypes = {
+  title:    PropTypes.string.isRequired,
+  onClose:  PropTypes.func.isRequired,
+  children: PropTypes.node,
 }
 
 // ----------------------------------------------------------------
@@ -124,6 +130,57 @@ export default function AdminArticles() {
     }
   }
 
+  const articlesTableBody = articles.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-14 text-center px-6">
+      <BookOpen size={32} className="text-gray-300 dark:text-gray-600 mb-3" />
+      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+        Aucun article pour l&apos;instant.
+      </p>
+      <button onClick={openCreate} className="mt-3 text-sm text-cesizen-500 hover:underline">
+        Créer le premier article
+      </button>
+    </div>
+  ) : (
+    <div className="divide-y divide-gray-100/60 dark:divide-white/6">
+      {articles.map(article => (
+        <div key={article.id} className="flex items-center gap-4 px-6 py-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {article.title}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              {article.author_prenom} {article.author_nom}
+              {' · '}
+              {new Date(article.created_at).toLocaleDateString('fr-FR')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => openEdit(article)}
+              title="Modifier"
+              className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/10
+                         hover:bg-cesizen-50 dark:hover:bg-cesizen-900/30
+                         hover:text-cesizen-600 text-gray-500
+                         flex items-center justify-center transition"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={() => openDelete(article)}
+              title="Supprimer"
+              className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/10
+                         hover:bg-red-50 dark:hover:bg-red-900/20
+                         hover:text-red-500 text-gray-500
+                         flex items-center justify-center transition"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
   return (
     <div className="max-w-4xl mx-auto">
 
@@ -177,7 +234,7 @@ export default function AdminArticles() {
             Liste des articles
           </h2>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-            {articles.length} article{articles.length !== 1 ? 's' : ''}
+            {articles.length} article{articles.length === 1 ? '' : 's'}
           </p>
         </div>
 
@@ -185,57 +242,7 @@ export default function AdminArticles() {
           <div className="flex items-center justify-center py-14">
             <div className="w-5 h-5 border-2 border-cesizen-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : articles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center px-6">
-            <BookOpen size={32} className="text-gray-300 dark:text-gray-600 mb-3" />
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              Aucun article pour l&apos;instant.
-            </p>
-            <button onClick={openCreate} className="mt-3 text-sm text-cesizen-500 hover:underline">
-              Créer le premier article
-            </button>
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100/60 dark:divide-white/6">
-            {articles.map(article => (
-              <div key={article.id} className="flex items-center gap-4 px-6 py-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                    {article.title}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                    {article.author_prenom} {article.author_nom}
-                    {' · '}
-                    {new Date(article.created_at).toLocaleDateString('fr-FR')}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openEdit(article)}
-                    title="Modifier"
-                    className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/10
-                               hover:bg-cesizen-50 dark:hover:bg-cesizen-900/30
-                               hover:text-cesizen-600 text-gray-500
-                               flex items-center justify-center transition"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => openDelete(article)}
-                    title="Supprimer"
-                    className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-white/10
-                               hover:bg-red-50 dark:hover:bg-red-900/20
-                               hover:text-red-500 text-gray-500
-                               flex items-center justify-center transition"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        ) : articlesTableBody}
       </div>
 
       {/* Modal Création / Édition */}
@@ -246,10 +253,11 @@ export default function AdminArticles() {
         >
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+              <label htmlFor="form-title" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Titre
               </label>
               <input
+                id="form-title"
                 type="text"
                 value={form.title}
                 onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
@@ -265,10 +273,11 @@ export default function AdminArticles() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
+              <label htmlFor="form-content" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">
                 Contenu
               </label>
               <textarea
+                id="form-content"
                 value={form.content}
                 onChange={e => setForm(p => ({ ...p, content: e.target.value }))}
                 placeholder="Rédigez le contenu de votre article..."

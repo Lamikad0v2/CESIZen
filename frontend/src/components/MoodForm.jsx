@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState } from 'react'
+import PropTypes from 'prop-types'
 import { CheckCircle2, AlertCircle, Send } from 'lucide-react'
 import api from '../api/axios'
 
@@ -94,6 +95,16 @@ function CircumplexSlider({ label, value, onChange, leftLabel, rightLabel, gradi
       />
     </div>
   )
+}
+
+CircumplexSlider.propTypes = {
+  label:      PropTypes.string.isRequired,
+  value:      PropTypes.number.isRequired,
+  onChange:   PropTypes.func.isRequired,
+  leftLabel:  PropTypes.string.isRequired,
+  rightLabel: PropTypes.string.isRequired,
+  gradient:   PropTypes.string.isRequired,
+  ariaLabel:  PropTypes.string.isRequired,
 }
 
 // ----------------------------------------------------------------
@@ -244,4 +255,7 @@ export default function MoodForm({ onSuccess }) {
       </button>
     </div>
   )
+}
+MoodForm.propTypes = {
+  onSuccess: PropTypes.func,
 }

@@ -77,7 +77,7 @@ class ArticleModelTest extends DatabaseTestCase
     #[Test]
     public function findAllOrdersByMostRecentFirst(): void
     {
-        $id1 = $this->model->create('Premier', 'Content', $this->userId);
+        $this->model->create('Premier', 'Content', $this->userId);
         $id2 = $this->model->create('Second',  'Content', $this->userId);
 
         $articles = $this->model->findAll();

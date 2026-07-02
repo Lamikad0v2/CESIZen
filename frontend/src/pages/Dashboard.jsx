@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import api from '../api/axios'
 import MoodForm, { getEnergyMeta } from '../components/MoodForm'
+import PropTypes from 'prop-types'
 
 // ----------------------------------------------------------------
 // Helpers
@@ -48,6 +49,11 @@ function ChartTooltip({ active, payload, label }) {
     </div>
   )
 }
+ChartTooltip.propTypes = {
+  active:  PropTypes.bool,
+  payload: PropTypes.arrayOf(PropTypes.shape({ value: PropTypes.number })),
+  label:   PropTypes.string,
+}
 
 // ----------------------------------------------------------------
 // Carte statistique réutilisable
@@ -72,6 +78,34 @@ function StatCard({ icon, label, value, sub, accent = 'indigo' }) {
       </div>
     </div>
   )
+}
+StatCard.propTypes = {
+  icon:   PropTypes.node,
+  label:  PropTypes.string,
+  value:  PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  sub:    PropTypes.string,
+  accent: PropTypes.string,
+}
+
+// ----------------------------------------------------------------
+// Custom dot pour l'AreaChart (S6478 — défini au niveau module)
+// ----------------------------------------------------------------
+function CustomDot({ cx, cy, payload }) {
+  if (payload.energy_level == null || cx == null || cy == null)
+    return <g key={`empty-${payload.date}`} />
+  const meta = getEnergyMeta(payload.energy_level)
+  return (
+    <circle key={`dot-${payload.date}`} cx={cx} cy={cy} r={4.5}
+      fill={meta?.hex ?? '#6366f1'} stroke="white" strokeWidth={2} />
+  )
+}
+CustomDot.propTypes = {
+  cx:      PropTypes.number,
+  cy:      PropTypes.number,
+  payload: PropTypes.shape({
+    energy_level: PropTypes.number,
+    date:         PropTypes.string,
+  }),
 }
 
 // ----------------------------------------------------------------
@@ -135,6 +169,90 @@ export default function Dashboard() { // NOSONAR
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  const streakSub = streak > 1 ? 'jours consécutifs' : streak === 1 ? 'Continuez !' : 'Commencez !'
+
+  const chartContent = hasAnyData ? (
+    <ResponsiveContainer width="100%" height={200} data-testid="chart">
+      <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
+            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="date"
+          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          axisLine={false} tickLine={false}
+        />
+        <YAxis
+          domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]}
+          tick={{ fontSize: 10, fill: '#9ca3af' }}
+          axisLine={false} tickLine={false} width={28}
+        />
+        <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="4 4" strokeOpacity={0.4} />
+        <ReferenceLine y={60} stroke="#e5e7eb" strokeDasharray="4 4" />
+        <Tooltip content={<ChartTooltip />} />
+        <Area
+          type="monotone"
+          dataKey="energy_level"
+          stroke="#6366f1"
+          strokeWidth={2.5}
+          fill="url(#energyGrad)"
+          dot={<CustomDot />}
+          activeDot={{ r: 6, fill: '#6366f1', stroke: 'white', strokeWidth: 2 }}
+          connectNulls={false}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  ) : (
+    <div className="h-48 flex flex-col items-center justify-center gap-3">
+      <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
+        <Inbox size={20} className="text-gray-300 dark:text-gray-600" />
+      </div>
+      <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">Aucune donnée.</p>
+    </div>
+  )
+
+  const recapContent = hasAnyData ? (
+    <div className="divide-y divide-gray-50 dark:divide-white/5">
+      {[...history].reverse().map((entry) => {
+        const meta = entry.energy_level ? getEnergyMeta(entry.energy_level) : null
+        const [y, mo, d] = entry.date.split('-').map(Number)
+        const dateLabel  = new Date(y, mo - 1, d).toLocaleDateString('fr-FR', {
+          weekday: 'long', day: 'numeric', month: 'long',
+        })
+        return (
+          <div key={entry.date} className="flex items-center justify-between px-6 py-3.5 gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${meta ? meta.bg : 'bg-gray-50 dark:bg-white/5'}`}>
+                {meta ? meta.emoji : '—'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200 capitalize">{dateLabel}</p>
+                {entry.emotion_tags?.length > 0 && (
+                  <p className="text-xs text-gray-400 dark:text-gray-600 truncate">
+                    {entry.emotion_tags.join(' · ')}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0">
+              {meta
+                ? <span className={`text-sm font-bold ${meta.text}`}>{entry.energy_level}/100</span>
+                : <span className="text-xs text-gray-300 dark:text-gray-700 italic">—</span>
+              }
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  ) : (
+    <p className="text-center text-sm text-gray-400 dark:text-gray-600 py-8">
+      Aucune entrée pour cette semaine.
+    </p>
+  )
+
   // ----------------------------------------------------------------
   // Rendu
   // ----------------------------------------------------------------
@@ -158,7 +276,7 @@ export default function Dashboard() { // NOSONAR
           icon={<Flame size={16} />}
           label="Série active"
           value={`${streak}j`}
-          sub={streak > 1 ? 'jours consécutifs' : streak === 1 ? 'Continuez !' : 'Commencez !'}
+          sub={streakSub}
           accent="orange"
         />
         <StatCard
@@ -224,7 +342,7 @@ export default function Dashboard() { // NOSONAR
                 Évolution — 7 jours
               </h2>
             </div>
-            {avgEnergy && avgMeta && (
+            {avgEnergy != null && avgMeta && (
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-xl ${avgMeta.bg} ${avgMeta.text}`}>
                 Moy. {avgMeta.emoji} {avgEnergy}/100
               </span>
@@ -235,57 +353,7 @@ export default function Dashboard() { // NOSONAR
             <div className="h-48 flex items-center justify-center">
               <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : !hasAnyData ? (
-            <div className="h-48 flex flex-col items-center justify-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
-                <Inbox size={20} className="text-gray-300 dark:text-gray-600" />
-              </div>
-              <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">Aucune donnée.</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={200} data-testid="chart">
-              <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  axisLine={false} tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 100]} ticks={[0, 20, 40, 60, 80, 100]}
-                  tick={{ fontSize: 10, fill: '#9ca3af' }}
-                  axisLine={false} tickLine={false} width={28}
-                />
-                <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="4 4" strokeOpacity={0.4} />
-                <ReferenceLine y={60} stroke="#e5e7eb" strokeDasharray="4 4" />
-                <Tooltip content={<ChartTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="energy_level"
-                  stroke="#6366f1"
-                  strokeWidth={2.5}
-                  fill="url(#energyGrad)"
-                  dot={(props) => {
-                    const { cx, cy, payload } = props
-                    if (payload.energy_level == null || cx == null || cy == null)
-                      return <g key={`empty-${payload.date}`} />
-                    const meta = getEnergyMeta(payload.energy_level)
-                    return (
-                      <circle key={`dot-${payload.date}`} cx={cx} cy={cy} r={4.5}
-                        fill={meta?.hex ?? '#6366f1'} stroke="white" strokeWidth={2} />
-                    )
-                  }}
-                  activeDot={{ r: 6, fill: '#6366f1', stroke: 'white', strokeWidth: 2 }}
-                  connectNulls={false}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
+          ) : chartContent}
         </div>
       </div>
 
@@ -299,48 +367,11 @@ export default function Dashboard() { // NOSONAR
 
         {historyLoading ? (
           <div className="px-6 pb-5 space-y-3">
-            {[...Array(3)].map((_, i) => (
+            {[...new Array(3)].map((_, i) => (
               <div key={i} className="h-12 bg-gray-50 dark:bg-white/5 rounded-2xl animate-pulse" />
             ))}
           </div>
-        ) : !hasAnyData ? (
-          <p className="text-center text-sm text-gray-400 dark:text-gray-600 py-8">
-            Aucune entrée pour cette semaine.
-          </p>
-        ) : (
-          <div className="divide-y divide-gray-50 dark:divide-white/5">
-            {[...history].reverse().map((entry) => {
-              const meta = entry.energy_level ? getEnergyMeta(entry.energy_level) : null
-              const [y, mo, d] = entry.date.split('-').map(Number)
-              const dateLabel  = new Date(y, mo - 1, d).toLocaleDateString('fr-FR', {
-                weekday: 'long', day: 'numeric', month: 'long',
-              })
-              return (
-                <div key={entry.date} className="flex items-center justify-between px-6 py-3.5 gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${meta ? meta.bg : 'bg-gray-50 dark:bg-white/5'}`}>
-                      {meta ? meta.emoji : '—'}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-200 capitalize">{dateLabel}</p>
-                      {entry.emotion_tags?.length > 0 && (
-                        <p className="text-xs text-gray-400 dark:text-gray-600 truncate">
-                          {entry.emotion_tags.join(' · ')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="shrink-0">
-                    {meta
-                      ? <span className={`text-sm font-bold ${meta.text}`}>{entry.energy_level}/100</span>
-                      : <span className="text-xs text-gray-300 dark:text-gray-700 italic">—</span>
-                    }
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        ) : recapContent}
       </div>
 
     </div>

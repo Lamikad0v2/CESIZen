@@ -78,7 +78,7 @@ class AccountController extends BaseController
             if (
                 strlen($mdp) < 8 ||
                 !preg_match('/[A-Z]/', $mdp) ||
-                !preg_match('/[0-9]/', $mdp) ||
+                !preg_match('/\d/', $mdp) ||
                 !preg_match('/[\W_]/', $mdp)
             ) {
                 $this->respond(422, 'error', null, 'Le mot de passe doit contenir au moins 8 caractères, 1 majuscule, 1 chiffre et 1 caractère spécial.');

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine,
-  ScatterChart, Scatter, ReferenceArea, Cell,
+  ScatterChart, Scatter, ReferenceArea,
 } from 'recharts'
 import {
   Flame, TrendingUp, Zap, CheckCircle2, Inbox,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import api from '../api/axios'
 import { getValenceMeta, getArousalMeta } from '../components/MoodForm'
+import PropTypes from 'prop-types'
 
 // ----------------------------------------------------------------
 // Helpers
@@ -100,6 +101,15 @@ function AreaChartTooltip({ active, payload, label }) {
     </div>
   )
 }
+AreaChartTooltip.propTypes = {
+  active:  PropTypes.bool,
+  payload: PropTypes.arrayOf(PropTypes.shape({
+    dataKey: PropTypes.string,
+    value:   PropTypes.number,
+    color:   PropTypes.string,
+  })),
+  label:   PropTypes.string,
+}
 
 // ----------------------------------------------------------------
 // Scatter Tooltip
@@ -116,6 +126,16 @@ function ScatterTooltip({ active, payload }) {
       </div>
     </div>
   )
+}
+ScatterTooltip.propTypes = {
+  active:  PropTypes.bool,
+  payload: PropTypes.arrayOf(PropTypes.shape({
+    payload: PropTypes.shape({
+      valence: PropTypes.number,
+      arousal: PropTypes.number,
+      date:    PropTypes.string,
+    }),
+  })),
 }
 
 // ----------------------------------------------------------------
@@ -155,6 +175,10 @@ function StreakRing({ streak, max = 7 }) {
     </div>
   )
 }
+StreakRing.propTypes = {
+  streak: PropTypes.number.isRequired,
+  max:    PropTypes.number,
+}
 
 // ----------------------------------------------------------------
 // Card shell réutilisable
@@ -166,6 +190,10 @@ function Card({ children, className = '' }) {
     </div>
   )
 }
+Card.propTypes = {
+  children:  PropTypes.node,
+  className: PropTypes.string,
+}
 
 function CardHeader({ icon, title, extra }) {
   return (
@@ -175,6 +203,11 @@ function CardHeader({ icon, title, extra }) {
       {extra}
     </div>
   )
+}
+CardHeader.propTypes = {
+  icon:  PropTypes.node,
+  title: PropTypes.string,
+  extra: PropTypes.node,
 }
 
 // ----------------------------------------------------------------
@@ -255,6 +288,122 @@ export default function Insights() { // NOSONAR
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  const streakSub = streak > 1 ? `${streak} jours consécutifs` : streak === 1 ? 'Continue !' : 'Commence !'
+
+  const emptyDataBlock = (height = 'h-52') => (
+    <div className={`${height} flex flex-col items-center justify-center gap-3`}>
+      <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
+        <Inbox size={20} className="text-gray-300 dark:text-gray-600" />
+      </div>
+      <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">Aucune donnée.</p>
+    </div>
+  )
+
+  const scatterContent = hasAnyData ? (
+    <ResponsiveContainer width="100%" height={220} data-testid="scatter-chart">
+      <ScatterChart margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <XAxis type="number" dataKey="valence" domain={[0, 100]}
+          tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}
+          label={{ value: 'Valence →', position: 'insideBottomRight', offset: -5, fontSize: 10, fill: '#9ca3af' }}
+        />
+        <YAxis type="number" dataKey="arousal" domain={[0, 100]}
+          tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28}
+          label={{ value: '↑ Activation', angle: -90, position: 'insideLeft', offset: 12, fontSize: 10, fill: '#9ca3af' }}
+        />
+        <ReferenceArea x1={0}  x2={50} y1={50} y2={100} fill="#f59e0b" fillOpacity={0.05} />
+        <ReferenceArea x1={50} x2={100} y1={50} y2={100} fill="#1b7a8a" fillOpacity={0.05} />
+        <ReferenceArea x1={0}  x2={50} y1={0}  y2={50}  fill="#ef4444" fillOpacity={0.05} />
+        <ReferenceArea x1={50} x2={100} y1={0}  y2={50}  fill="#06b6d4" fillOpacity={0.05} />
+        <ReferenceArea x1={0}  x2={30} y1={0}  y2={30}  fill="#ef4444" fillOpacity={0.08} stroke="#ef4444" strokeOpacity={0.2} strokeDasharray="3 3" />
+        <Tooltip content={<ScatterTooltip />} />
+        <Scatter name="q1" data={q1} fill={QUADRANT_COLORS.q1} r={5} />
+        <Scatter name="q2" data={q2} fill={QUADRANT_COLORS.q2} r={5} />
+        <Scatter name="q3" data={q3} fill={QUADRANT_COLORS.q3} r={5} />
+        <Scatter name="q4" data={q4} fill={QUADRANT_COLORS.q4} r={5} />
+      </ScatterChart>
+    </ResponsiveContainer>
+  ) : emptyDataBlock()
+
+  const areaChartContent = hasAnyData ? (
+    <ResponsiveContainer width="100%" height={200} data-testid="chart">
+      <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="valenceGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#1b7a8a" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="#1b7a8a" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="arousalGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.15} />
+            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="date"
+          tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}
+        />
+        <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
+          tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28}
+        />
+        <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="4 4" strokeOpacity={0.35} />
+        <Tooltip content={<AreaChartTooltip />} />
+        <Area type="monotone" dataKey="valence" stroke="#1b7a8a" strokeWidth={2.5}
+          fill="url(#valenceGrad)"
+          dot={{ r: 4, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
+          connectNulls={false}
+        />
+        <Area type="monotone" dataKey="arousal" stroke="#f59e0b" strokeWidth={2.5}
+          fill="url(#arousalGrad)"
+          dot={{ r: 4, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
+          connectNulls={false}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  ) : emptyDataBlock()
+
+  const recapContent = hasAnyData ? (
+    <div className="divide-y divide-gray-50 dark:divide-white/5">
+      {[...history].reverse().map(entry => {
+        const valenceMeta = entry.valence == null ? null : getValenceMeta(entry.valence)
+        const arousalMeta = entry.arousal == null ? null : getArousalMeta(entry.arousal)
+        const [y, mo, d]  = entry.date.split('-').map(Number)
+        const dateLabel   = new Date(y, mo - 1, d).toLocaleDateString('fr-FR', {
+          weekday: 'long', day: 'numeric', month: 'long',
+        })
+        return (
+          <div key={entry.date} className="flex items-center justify-between px-6 py-3.5 gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200 capitalize">{dateLabel}</p>
+              {entry.context_tags?.length > 0 && (
+                <p className="text-xs text-gray-400 dark:text-gray-600 truncate">
+                  {entry.context_tags.join(' · ')}
+                </p>
+              )}
+            </div>
+            <div className="shrink-0 flex gap-1.5">
+              {valenceMeta ? (
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap ${valenceMeta.bgClass} ${valenceMeta.textClass}`}>
+                  V {entry.valence}
+                </span>
+              ) : (
+                <span className="text-xs text-gray-300 dark:text-gray-700 italic">—</span>
+              )}
+              {arousalMeta && (
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap ${arousalMeta.bgClass} ${arousalMeta.textClass}`}>
+                  A {entry.arousal}
+                </span>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  ) : (
+    <p className="text-center text-sm text-gray-400 dark:text-gray-600 py-8">
+      Aucune entrée pour cette semaine.
+    </p>
+  )
+
   // ── Rendu ──────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
@@ -306,7 +455,7 @@ export default function Insights() { // NOSONAR
           </div>
           <StreakRing streak={streak} />
           <p className="text-xs text-gray-400 text-center leading-snug">
-            {streak > 1 ? `${streak} jours consécutifs` : streak === 1 ? 'Continue !' : 'Commence !'}
+            {streakSub}
           </p>
         </Card>
 
@@ -318,10 +467,10 @@ export default function Insights() { // NOSONAR
           <div>
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-0.5">Valence moy. 7j</p>
             <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              {avgValence != null ? `${avgValence}/100` : '—'}
+              {avgValence == null ? '—' : `${avgValence}/100`}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              {avgValence != null ? getValenceMeta(avgValence).label : 'Aucune donnée'}
+              {avgValence == null ? 'Aucune donnée' : getValenceMeta(avgValence).label}
             </p>
           </div>
         </Card>
@@ -333,10 +482,10 @@ export default function Insights() { // NOSONAR
           <div>
             <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-0.5">Activation moy. 7j</p>
             <p className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              {avgArousal != null ? `${avgArousal}/100` : '—'}
+              {avgArousal == null ? '—' : `${avgArousal}/100`}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              {avgArousal != null ? getArousalMeta(avgArousal).label : 'Aucune donnée'}
+              {avgArousal == null ? 'Aucune donnée' : getArousalMeta(avgArousal).label}
             </p>
           </div>
         </Card>
@@ -380,39 +529,7 @@ export default function Insights() { // NOSONAR
               <div className="h-52 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-cesizen-400 border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : !hasAnyData ? (
-              <div className="h-52 flex flex-col items-center justify-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
-                  <Inbox size={20} className="text-gray-300 dark:text-gray-600" />
-                </div>
-                <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">Aucune donnée.</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220} data-testid="scatter-chart">
-                <ScatterChart margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                  <XAxis type="number" dataKey="valence" domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}
-                    label={{ value: 'Valence →', position: 'insideBottomRight', offset: -5, fontSize: 10, fill: '#9ca3af' }}
-                  />
-                  <YAxis type="number" dataKey="arousal" domain={[0, 100]}
-                    tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28}
-                    label={{ value: '↑ Activation', angle: -90, position: 'insideLeft', offset: 12, fontSize: 10, fill: '#9ca3af' }}
-                  />
-                  {/* Quadrant backgrounds */}
-                  <ReferenceArea x1={0}  x2={50} y1={50} y2={100} fill="#f59e0b" fillOpacity={0.05} />
-                  <ReferenceArea x1={50} x2={100} y1={50} y2={100} fill="#1b7a8a" fillOpacity={0.05} />
-                  <ReferenceArea x1={0}  x2={50} y1={0}  y2={50}  fill="#ef4444" fillOpacity={0.05} />
-                  <ReferenceArea x1={50} x2={100} y1={0}  y2={50}  fill="#06b6d4" fillOpacity={0.05} />
-                  {/* Burn-out zone highlight */}
-                  <ReferenceArea x1={0}  x2={30} y1={0}  y2={30}  fill="#ef4444" fillOpacity={0.08} stroke="#ef4444" strokeOpacity={0.2} strokeDasharray="3 3" />
-                  <Tooltip content={<ScatterTooltip />} />
-                  <Scatter name="q1" data={q1} fill={QUADRANT_COLORS.q1} r={5} />
-                  <Scatter name="q2" data={q2} fill={QUADRANT_COLORS.q2} r={5} />
-                  <Scatter name="q3" data={q3} fill={QUADRANT_COLORS.q3} r={5} />
-                  <Scatter name="q4" data={q4} fill={QUADRANT_COLORS.q4} r={5} />
-                </ScatterChart>
-              </ResponsiveContainer>
-            )}
+            ) : scatterContent}
           </div>
         </Card>
 
@@ -470,49 +587,7 @@ export default function Insights() { // NOSONAR
               <div className="h-52 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-cesizen-400 border-t-transparent rounded-full animate-spin" />
               </div>
-            ) : !hasAnyData ? (
-              <div className="h-52 flex flex-col items-center justify-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center">
-                  <Inbox size={20} className="text-gray-300 dark:text-gray-600" />
-                </div>
-                <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">Aucune donnée.</p>
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={200} data-testid="chart">
-                <AreaChart data={chartData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="valenceGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#1b7a8a" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#1b7a8a" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="arousalGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date"
-                    tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false}
-                  />
-                  <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]}
-                    tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} width={28}
-                  />
-                  <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="4 4" strokeOpacity={0.35} />
-                  <Tooltip content={<AreaChartTooltip />} />
-                  <Area type="monotone" dataKey="valence" stroke="#1b7a8a" strokeWidth={2.5}
-                    fill="url(#valenceGrad)"
-                    dot={{ r: 4, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: '#1b7a8a', stroke: 'white', strokeWidth: 2 }}
-                    connectNulls={false}
-                  />
-                  <Area type="monotone" dataKey="arousal" stroke="#f59e0b" strokeWidth={2.5}
-                    fill="url(#arousalGrad)"
-                    dot={{ r: 4, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: '#f59e0b', stroke: 'white', strokeWidth: 2 }}
-                    connectNulls={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            ) : areaChartContent}
           </div>
         </Card>
 
@@ -564,52 +639,11 @@ export default function Insights() { // NOSONAR
 
         {historyLoading ? (
           <div className="px-6 pb-5 space-y-3">
-            {[...Array(3)].map((_, i) => (
+            {[...new Array(3)].map((_, i) => (
               <div key={i} className="h-12 bg-gray-50 dark:bg-white/5 rounded-2xl animate-pulse" />
             ))}
           </div>
-        ) : !hasAnyData ? (
-          <p className="text-center text-sm text-gray-400 dark:text-gray-600 py-8">
-            Aucune entrée pour cette semaine.
-          </p>
-        ) : (
-          <div className="divide-y divide-gray-50 dark:divide-white/5">
-            {[...history].reverse().map(entry => {
-              const valenceMeta = entry.valence != null ? getValenceMeta(entry.valence) : null
-              const arousalMeta = entry.arousal != null ? getArousalMeta(entry.arousal) : null
-              const [y, mo, d]  = entry.date.split('-').map(Number)
-              const dateLabel   = new Date(y, mo - 1, d).toLocaleDateString('fr-FR', {
-                weekday: 'long', day: 'numeric', month: 'long',
-              })
-              return (
-                <div key={entry.date} className="flex items-center justify-between px-6 py-3.5 gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200 capitalize">{dateLabel}</p>
-                    {entry.context_tags?.length > 0 && (
-                      <p className="text-xs text-gray-400 dark:text-gray-600 truncate">
-                        {entry.context_tags.join(' · ')}
-                      </p>
-                    )}
-                  </div>
-                  <div className="shrink-0 flex gap-1.5">
-                    {valenceMeta ? (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap ${valenceMeta.bgClass} ${valenceMeta.textClass}`}>
-                        V {entry.valence}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-300 dark:text-gray-700 italic">—</span>
-                    )}
-                    {arousalMeta && (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap ${arousalMeta.bgClass} ${arousalMeta.textClass}`}>
-                        A {entry.arousal}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        ) : recapContent}
       </Card>
 
     </div>

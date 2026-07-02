@@ -321,7 +321,7 @@ class MoodModelTest extends DatabaseTestCase
         $prevDays = $this->model->findPreviousTwoDaysScoresByUserId($this->userId);
 
         $this->assertCount(1, $prevDays);
-        $this->assertFalse(count($prevDays) === 2); // La condition exige count === 2
+        $this->assertNotSame(2, count($prevDays)); // La condition exige count === 2
     }
 
     #[Test]

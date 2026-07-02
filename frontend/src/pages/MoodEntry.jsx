@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { CheckCircle2, BarChart2, CalendarDays } from 'lucide-react'
+import PropTypes from 'prop-types'
 import api from '../api/axios'
 import MoodForm, { getValenceMeta, getArousalMeta } from '../components/MoodForm'
 
@@ -50,6 +51,16 @@ export default function MoodEntry() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  const submittedContent = submitted
+    ? <SuccessState entry={todayEntry} />
+    : <MoodForm onSuccess={() => { setSubmitted(true); fetchToday() }} />
+  const cardContent = loading
+    ? (
+      <div className="h-48 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-cesizen-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    ) : submittedContent
+
   return (
     <div className="max-w-xl mx-auto space-y-5">
 
@@ -66,15 +77,7 @@ export default function MoodEntry() {
 
       {/* Carte principale */}
       <div className="bg-white dark:bg-gray-900/80 rounded-3xl border border-gray-100/80 dark:border-white/8 shadow-sm p-7">
-        {loading ? (
-          <div className="h-48 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-cesizen-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : submitted ? (
-          <SuccessState entry={todayEntry} />
-        ) : (
-          <MoodForm onSuccess={() => { setSubmitted(true); fetchToday() }} />
-        )}
+        {cardContent}
       </div>
 
       {/* Lien vers les statistiques */}
@@ -96,8 +99,8 @@ export default function MoodEntry() {
 // État de confirmation post-soumission
 // ----------------------------------------------------------------
 function SuccessState({ entry }) {
-  const valenceMeta = entry?.valence != null ? getValenceMeta(entry.valence) : null
-  const arousalMeta = entry?.arousal != null ? getArousalMeta(entry.arousal) : null
+  const valenceMeta = entry?.valence == null ? null : getValenceMeta(entry.valence)
+  const arousalMeta = entry?.arousal == null ? null : getArousalMeta(entry.arousal)
 
   return (
     <div className="flex flex-col items-center gap-5 py-6 text-center">
@@ -139,4 +142,12 @@ function SuccessState({ entry }) {
       )}
     </div>
   )
+}
+
+SuccessState.propTypes = {
+  entry: PropTypes.shape({
+    valence: PropTypes.number,
+    arousal: PropTypes.number,
+    context_tags: PropTypes.array,
+  }),
 }

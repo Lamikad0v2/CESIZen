@@ -72,10 +72,11 @@ export default function Login() {
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+              <label htmlFor="email" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
                 Adresse email
               </label>
               <input
+                id="email"
                 type="email"
                 name="email"
                 value={form.email}
@@ -91,10 +92,11 @@ export default function Login() {
 
             {/* Mot de passe */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+              <label htmlFor="mot_de_passe" className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
                 Mot de passe
               </label>
               <input
+                id="mot_de_passe"
                 type="password"
                 name="mot_de_passe"
                 value={form.mot_de_passe}
