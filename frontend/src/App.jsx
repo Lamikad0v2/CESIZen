@@ -10,17 +10,6 @@ import ManagerDashboard from './pages/ManagerDashboard'
 import Profile          from './pages/Profile'
 import Articles         from './pages/Articles'
 
-const V2_BANNER = (
-  <div style={{
-    position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
-    background: '#dc2626', color: '#fff', textAlign: 'center',
-    padding: '6px 0', fontWeight: 700, fontSize: '14px',
-    letterSpacing: '0.05em', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-  }}>
-    🔴 VERSION 2 — Nouveau déploiement Blue/Green actif
-  </div>
-)
-
 /** Routes enveloppées par le Layout (sidebar + header). */
 function AppLayout({ children }) {
   return <Layout>{children}</Layout>
@@ -29,8 +18,6 @@ function AppLayout({ children }) {
 function App() {
   return (
     <ThemeProvider>
-      {V2_BANNER}
-      <div style={{ paddingTop: '32px' }}>
       <Routes>
         {/* Pages standalone (sans Layout) */}
         <Route path="/login"    element={<Login />} />
@@ -47,7 +34,6 @@ function App() {
         {/* Redirection par défaut */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-      </div>
     </ThemeProvider>
   )
 }
