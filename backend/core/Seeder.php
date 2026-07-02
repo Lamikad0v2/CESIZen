@@ -271,7 +271,7 @@ try {
 
     foreach ($ARTICLES as $article) {
         if (!isset($userIdsByEmail[$article['author_email']])) {
-            throw new RuntimeException('Unknown article author: ' . $article['author_email']);
+            throw new AppException('Unknown article author: ' . $article['author_email']);
         }
 
         $articleStmt->execute([

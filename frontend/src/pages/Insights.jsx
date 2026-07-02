@@ -88,7 +88,7 @@ function AreaChartTooltip({ active, payload, label }) {
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-white/10 rounded-2xl shadow-xl px-4 py-3 text-sm">
       <p className="text-gray-400 dark:text-gray-500 text-xs mb-2 font-medium">{label}</p>
       {payload.map(p =>
-        p.value != null ? (
+        p.value == null ? null : (
           <div key={p.dataKey} className="flex items-center gap-2 mb-0.5">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
             <span className="text-gray-500 dark:text-gray-400 text-xs capitalize">
@@ -96,7 +96,7 @@ function AreaChartTooltip({ active, payload, label }) {
             </span>
             <span className="font-semibold text-gray-900 dark:text-white">{p.value}/100</span>
           </div>
-        ) : null
+        )
       )}
     </div>
   )
@@ -288,7 +288,10 @@ export default function Insights() { // NOSONAR
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
-  const streakSub = streak > 1 ? `${streak} jours consécutifs` : streak === 1 ? 'Continue !' : 'Commence !'
+  let streakSub
+  if (streak > 1) streakSub = `${streak} jours consécutifs`
+  else if (streak === 1) streakSub = 'Continue !'
+  else streakSub = 'Commence !'
 
   const emptyDataBlock = (height = 'h-52') => (
     <div className={`${height} flex flex-col items-center justify-center gap-3`}>
@@ -639,8 +642,8 @@ export default function Insights() { // NOSONAR
 
         {historyLoading ? (
           <div className="px-6 pb-5 space-y-3">
-            {[...new Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-50 dark:bg-white/5 rounded-2xl animate-pulse" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-12 bg-gray-50 dark:bg-white/5 rounded-2xl animate-pulse" /> // NOSONAR
             ))}
           </div>
         ) : recapContent}

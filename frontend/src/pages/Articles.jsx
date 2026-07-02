@@ -15,21 +15,16 @@ function ArticleModal({ article, onClose }) {
   })
 
   return (
-    <div
+    <button
+      type="button"
       className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-50 px-4 py-8"
-      onClick={onClose}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onClose() }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      aria-label="Fermer l'article"
     >
       <div
         className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-3xl shadow-2xl
                    w-full max-w-2xl max-h-[85vh] flex flex-col
                    border border-white/50 dark:border-white/10"
-        onClick={e => e.stopPropagation()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation() }}
       >
         {/* En-tête */}
         <div className="flex items-start justify-between gap-4 p-7 border-b border-gray-100 dark:border-white/8 shrink-0">
@@ -61,7 +56,7 @@ function ArticleModal({ article, onClose }) {
           </p>
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 

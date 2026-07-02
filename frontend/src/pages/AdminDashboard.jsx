@@ -477,10 +477,11 @@ export default function AdminDashboard() { // NOSONAR
             { key: 'alerts',   label: 'Alertes',      count: null,            icon: <Bell size={13} />,      badge: unreadCount },
             { key: 'articles', label: 'Articles',     count: articles.length, icon: <BookOpen size={13} />,  badge: 0 },
           ].map(tab => {
+            const activeTabClass = (tab.key === 'alerts' && unreadCount > 0)
+              ? 'bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 shadow-sm'
+              : 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
             const tabClass = activeTab === tab.key
-              ? (tab.key === 'alerts' && unreadCount > 0
-                  ? 'bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 shadow-sm'
-                  : 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm')
+              ? activeTabClass
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             return (
             <button
@@ -711,11 +712,14 @@ export default function AdminDashboard() { // NOSONAR
 
       {/* Confirmation de suppression (équipe / utilisateur / article) */}
       {modal?.type === 'confirm-delete' && (() => {
-        const deleteMessage = modal.data.kind === 'team'
-          ? <>Supprimer l&apos;équipe <strong className="text-gray-800 dark:text-gray-100">« {modal.data.target.nom_equipe} »</strong> ? Les membres seront retirés de cette équipe.</>
-          : modal.data.kind === 'article'
-            ? <>Supprimer l&apos;article <strong className="text-gray-800 dark:text-gray-100">« {modal.data.target.title} »</strong> ? Cette action est irréversible.</>
-            : <>Supprimer <strong className="text-gray-800 dark:text-gray-100">{modal.data.target.prenom} {modal.data.target.nom}</strong> ? Toutes ses données seront supprimées.</>
+        let deleteMessage
+        if (modal.data.kind === 'team') {
+          deleteMessage = <>Supprimer l&apos;équipe <strong className="text-gray-800 dark:text-gray-100">« {modal.data.target.nom_equipe} »</strong> ? Les membres seront retirés de cette équipe.</>
+        } else if (modal.data.kind === 'article') {
+          deleteMessage = <>Supprimer l&apos;article <strong className="text-gray-800 dark:text-gray-100">« {modal.data.target.title} »</strong> ? Cette action est irréversible.</>
+        } else {
+          deleteMessage = <>Supprimer <strong className="text-gray-800 dark:text-gray-100">{modal.data.target.prenom} {modal.data.target.nom}</strong> ? Toutes ses données seront supprimées.</>
+        }
         const handleConfirmDelete = () => {
           if (modal.data.kind === 'team')    return handleTeamDelete(modal.data.target)
           if (modal.data.kind === 'article') return handleArticleDelete(modal.data.target)

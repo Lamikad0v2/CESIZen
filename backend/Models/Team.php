@@ -83,9 +83,9 @@ class Team
             return (int) $this->pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
-                throw new RuntimeException('Team name already exists.', 409, $e);
+                throw new AppException('Team name already exists.', 409, $e);
             }
-            throw new RuntimeException('Team creation failed.', 500, $e);
+            throw new AppException('Team creation failed.', 500, $e);
         }
     }
 
@@ -111,9 +111,9 @@ class Team
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
-                throw new RuntimeException('Team name already exists.', 409, $e);
+                throw new AppException('Team name already exists.', 409, $e);
             }
-            throw new RuntimeException('Team update failed.', 500, $e);
+            throw new AppException('Team update failed.', 500, $e);
         }
     }
 

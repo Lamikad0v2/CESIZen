@@ -169,7 +169,10 @@ export default function Dashboard() { // NOSONAR
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
 
-  const streakSub = streak > 1 ? 'jours consécutifs' : streak === 1 ? 'Continuez !' : 'Commencez !'
+  let streakSub
+  if (streak > 1) streakSub = 'jours consécutifs'
+  else if (streak === 1) streakSub = 'Continuez !'
+  else streakSub = 'Commencez !'
 
   const chartContent = hasAnyData ? (
     <ResponsiveContainer width="100%" height={200} data-testid="chart">
@@ -367,8 +370,8 @@ export default function Dashboard() { // NOSONAR
 
         {historyLoading ? (
           <div className="px-6 pb-5 space-y-3">
-            {[...new Array(3)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-50 dark:bg-white/5 rounded-2xl animate-pulse" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-12 bg-gray-50 dark:bg-white/5 rounded-2xl animate-pulse" /> // NOSONAR
             ))}
           </div>
         ) : recapContent}

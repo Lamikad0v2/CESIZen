@@ -150,7 +150,7 @@ class AuthController
         }
 
         // --- Session sécurisée ---
-        session_set_cookie_params([
+        session_set_cookie_params([ // NOSONAR — secure:true est explicitement défini ci-dessous
             'lifetime' => 0,
             'path'     => '/',
             'secure'   => true,

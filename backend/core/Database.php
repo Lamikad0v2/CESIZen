@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/AppException.php';
+
 /**
  * Classe Database — Connexion PDO via le pattern Singleton.
  *
@@ -48,7 +50,7 @@ class Database
             $this->connection = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
             // On ne propage jamais le message brut au client
-            throw new RuntimeException('Database connection failed.', 500, $e);
+            throw new AppException('Database connection failed.', 500, $e);
         }
     }
 
