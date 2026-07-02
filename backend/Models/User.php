@@ -158,9 +158,9 @@ class User
         } catch (PDOException $e) {
             // SQLSTATE 23000 = violation de contrainte FK (team_id inexistant)
             if ($e->getCode() === '23000') {
-                throw new RuntimeException('Invalid team ID: team does not exist.', 422, $e);
+                throw new AppException('Invalid team ID: team does not exist.', 422, $e);
             }
-            throw new RuntimeException('User update failed.', 500, $e);
+            throw new AppException('User update failed.', 500, $e);
         }
     }
 

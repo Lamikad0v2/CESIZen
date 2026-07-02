@@ -407,13 +407,11 @@ export default function Layout({ children }) {
       {/* ── Drawer mobile (overlay) ── */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-40 flex">
-          <div
+          <button
+            type="button"
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
-            role="button"
-            tabIndex={0}
             aria-label="Fermer le menu"
-            onKeyDown={e => e.key === 'Enter' && setSidebarOpen(false)}
           />
           <aside className="relative flex flex-col w-64 h-full
                             bg-white dark:bg-gray-900

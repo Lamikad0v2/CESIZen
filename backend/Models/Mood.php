@@ -67,9 +67,9 @@ class Mood
             return (int) $this->pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
-                throw new RuntimeException('Duplicate mood for today.', 409, $e);
+                throw new AppException('Duplicate mood for today.', 409, $e);
             }
-            throw new RuntimeException('Mood insertion failed.', 500, $e);
+            throw new AppException('Mood insertion failed.', 500, $e);
         }
     }
 

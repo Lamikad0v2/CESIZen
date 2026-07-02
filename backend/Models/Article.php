@@ -106,9 +106,9 @@ class Article
             return (int) $this->pdo->lastInsertId();
         } catch (PDOException $e) {
             if ($e->getCode() === '23000') {
-                throw new RuntimeException('Invalid author ID: user does not exist.', 422, $e);
+                throw new AppException('Invalid author ID: user does not exist.', 422, $e);
             }
-            throw new RuntimeException('Article creation failed.', 500, $e);
+            throw new AppException('Article creation failed.', 500, $e);
         }
     }
 

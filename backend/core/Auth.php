@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/AppException.php';
+
 /**
  * Utilitaire Auth — Vérifications d'authentification et d'autorisation.
  *
@@ -90,7 +92,7 @@ class Auth
         http_response_code($code);
         echo json_encode(['status' => 'error', 'data' => null, 'message' => $message]);
         if (self::$throwOnAbort) {
-            throw new RuntimeException("HTTP {$code}: {$message}", $code);
+            throw new AppException("HTTP {$code}: {$message}", $code);
         }
         exit;
     }

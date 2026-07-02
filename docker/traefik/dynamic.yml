@@ -1,5 +1,5 @@
 ﻿# dynamic.yml -- gere par deploy-blue-green.ps1
-# Slot actif : green
+# Slot actif : blue
 
 http:
   routers:
@@ -13,5 +13,5 @@ http:
     cesizen-active:
       loadBalancer:
         servers:
-          - url: "http://app-green:8080"
+          - url: "http://app-blue:8080"
 
